@@ -1,10 +1,42 @@
+import React, { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
+
+// Import our organized Setup component
+import Setup from './Setup';
+
+// Prevent the splash screen from auto-hiding immediately
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* Handle potential error in some environments */
+});
 
 export default function App() {
+  useEffect(() => {
+    async function prepare() {
+      try {
+        // Simulate a 3-second load for the Aera brand experience
+        // This provides a professional transition to the logo screen
+        await new Promise(resolve => setTimeout(resolve, 3000)); 
+      } catch (e) {
+        console.warn('Initialization error:', e);
+      } finally {
+        // Once preparation is done, hide the native splash screen
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    prepare();
+  }, []);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.textContainer}>Welcome to Aera!</Text>
+      {/* The Setup component handles the centered Aera logo 
+          and switches themes automatically.
+      */}
+      <Setup />
+      
+      {/* Adaptive status bar (detects light/dark system theme) */}
       <StatusBar style="auto" />
     </View>
   );
@@ -13,13 +45,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    // Background color is managed by Setup.tsx to prevent flickering
   },
-  textContainer: {
-    fontSize: 30,
-    fontWeight: 900,
-    textAlign: "center"
-  }
 });
