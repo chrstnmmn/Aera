@@ -185,8 +185,8 @@ const Setup = () => {
 
 const styles = StyleSheet.create({
 	container: { flex: 1 },
-	scrollContent: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 40 },
-	logoContainer: { alignItems: "center", marginBottom: 20 },
+	scrollContent: { paddingHorizontal: 20, paddingTop: 50, paddingBottom:100 },
+	logoContainer: { alignItems: "center", marginBottom: 5 },
 	instructionsContainer: { width: "100%" },
 	mainTitle: {
 		fontSize: 20,
