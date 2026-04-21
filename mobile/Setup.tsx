@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+//import { BleManager } from "react-native-ble-plx";
 import {
 	StyleSheet,
 	View,
@@ -13,9 +14,34 @@ import LogoLight from "./assets/header-logo-light.svg";
 
 const { width } = Dimensions.get("window");
 
+//const manager = new BleManager();
+
 const Setup = () => {
+	const [isBluetoothOn, setIsBluetoothOn] = useState(false);
+	/**
+  useEffect(() => {
+		// 1. Check the initial state when the app opens
+		const checkInitialState = async () => {
+			const state = await manager.state();
+			setIsBluetoothOn(state === "PoweredOn");
+		};
+		checkInitialState();
+
+		// 2. Subscribe to state changes (The "Watchdog")
+		const subscription = manager.onStateChange((state) => {
+			if (state === "PoweredOn") {
+				setIsBluetoothOn(true);
+			} else {
+				setIsBluetoothOn(false);
+			}
+		}, true); // The 'true' flag makes it run immediately
+
+		// 3. Cleanup the listener when the component unmounts
+		return () => subscription.remove();
+	}, []);
+  **/
+
 	const isDarkMode = useColorScheme() === "dark";
-	const [isBluetoothOn, setIsBluetoothOn] = useState(true);
 	const theme = {
 		text: isDarkMode ? "#E7E7E7" : "#2E2E2E",
 		subtext: isDarkMode ? "#E7E7E7" : "#2E2E2E",
@@ -49,7 +75,7 @@ const Setup = () => {
 
 					<View style={styles.stepBox}>
 						<Text style={[styles.stepTitle, { color: theme.text }]}>
-							Step 1: Power & Pair
+							Step 1: Enter Pairing Mode
 						</Text>
 						<Text
 							style={[
@@ -57,16 +83,15 @@ const Setup = () => {
 								{ color: theme.subtext },
 							]}
 						>
-							Power on your Aera Nano hardware and ensure
-							Bluetooth and Wi-Fi are enabled on your smartphone.
-							Select your dryer from the discovered devices list
-							to initiate the Bluetooth pairing.
+							Power on your Aera Nano. Press and hold the Setup
+							Button for 5 seconds until the status indicator
+							blinks blue.
 						</Text>
 					</View>
 
 					<View style={styles.stepBox}>
 						<Text style={[styles.stepTitle, { color: theme.text }]}>
-							Step 2: Wi-Fi Details
+							Step 2: Secure Discovery
 						</Text>
 						<Text
 							style={[
@@ -74,16 +99,15 @@ const Setup = () => {
 								{ color: theme.subtext },
 							]}
 						>
-							Select your local 2.4GHz Wi-Fi network from the list
-							and enter the password. This information is sent
-							securely to the Aera Dryer over the Bluetooth
-							bridge.
+							Tap "Connect" below. Your phone will securely scan
+							for your Aera hardware via Bluetooth. Ensure your
+							phone's Bluetooth is enabled.
 						</Text>
 					</View>
 
 					<View style={styles.stepBox}>
 						<Text style={[styles.stepTitle, { color: theme.text }]}>
-							Step 3: Provisioning
+							Step 3: Network Handoff
 						</Text>
 						<Text
 							style={[
@@ -91,9 +115,25 @@ const Setup = () => {
 								{ color: theme.subtext },
 							]}
 						>
-							The app will send the credentials to the Aera Dryer,
-							which will automatically save them and join the
-							network. This process may take a minute.
+							Select your local 2.4GHz Wi-Fi network. Your
+							credentials will be sent securely to the Aera Dryer
+							over the encrypted Bluetooth bridge.
+						</Text>
+					</View>
+
+					<View style={styles.stepBox}>
+						<Text style={[styles.stepTitle, { color: theme.text }]}>
+							Step 4: Live Sync
+						</Text>
+						<Text
+							style={[
+								styles.stepDescription,
+								{ color: theme.subtext },
+							]}
+						>
+							Once the hardware connects to your Wi-Fi, the setup
+							is complete! Your live drying telemetry will appear
+							automatically.
 						</Text>
 					</View>
 
@@ -145,7 +185,7 @@ const Setup = () => {
 
 const styles = StyleSheet.create({
 	container: { flex: 1 },
-	scrollContent: { paddingHorizontal: 20, paddingTop: 90, paddingBottom: 40 },
+	scrollContent: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 40 },
 	logoContainer: { alignItems: "center", marginBottom: 20 },
 	instructionsContainer: { width: "100%" },
 	mainTitle: {
