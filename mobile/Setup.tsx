@@ -9,7 +9,7 @@ import {
 	Dimensions,
 	TouchableOpacity,
 } from "react-native";
-import LogoDark from "./assets/header-logo-dark.svg";
+import LogoDark from "./assets/header-logo-dark.svg";``
 import LogoLight from "./assets/header-logo-light.svg";
 
 const { width } = Dimensions.get("window");
