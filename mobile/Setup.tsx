@@ -17,7 +17,7 @@ const { width } = Dimensions.get("window");
 //const manager = new BleManager();
 
 const Setup = () => {
-	const [isBluetoothOn, setIsBluetoothOn] = useState(false);
+	const [isBluetoothOn, setIsBluetoothOn] = useState(true);
 	/**
   useEffect(() => {
 		// 1. Check the initial state when the app opens
