@@ -11,21 +11,21 @@ static const char *TAG = "OLED_SWIRL";
 
 // Standard PI constant if not defined by compiler
 #ifndef M_PI
-    #define M_PI 3.14159265358979323846
-#endifF
+#define M_PI 3.14159265358979323846
+#endif
 
 // Pin definitions (Keeping same from previous step)
 #define PIN_NUM_MISO -1
 #define PIN_NUM_MOSI 23
-#define PIN_NUM_CLK  18
-#define PIN_NUM_CS   5
-#define PIN_NUM_DC   21
-#define PIN_NUM_RST  22
+#define PIN_NUM_CLK 18
+#define PIN_NUM_CS 5
+#define PIN_NUM_DC 21
+#define PIN_NUM_RST 22
 
 // Display dimensions
-#define OLED_WIDTH  128
+#define OLED_WIDTH 128
 #define OLED_HEIGHT 64
-#define OLED_PAGES  8 // 64 height / 8 bits per page
+#define OLED_PAGES 8 // 64 height / 8 bits per page
 
 spi_device_handle_t spi;
 
@@ -36,28 +36,34 @@ spi_device_handle_t spi;
 static uint8_t frame_buffer[OLED_WIDTH * OLED_PAGES];
 
 // Clear the local RAM framebuffer (0=black, 255=all white)
-void oled_clear_buffer(uint8_t pattern) {
+void oled_clear_buffer(uint8_t pattern)
+{
     memset(frame_buffer, pattern, sizeof(frame_buffer));
 }
 
 // Map (x,y) coordinate to the correct bit in the framebuffer
 // color: 1 = ON, 0 = OFF
-void oled_draw_pixel(int x, int y, int color) {
+void oled_draw_pixel(int x, int y, int color)
+{
     // Basic boundary check
-    if (x < 0 || x >= OLED_WIDTH || y < 0 || y >= OLED_HEIGHT) {
+    if (x < 0 || x >= OLED_WIDTH || y < 0 || y >= OLED_HEIGHT)
+    {
         return;
     }
 
     // The SSD1309 organizes memory in Pages (rows 8px high)
     int page = y / 8;
     int bit_within_byte = y % 8;
-    
+
     // Calculate index in the linear array
     int buffer_idx = (page * OLED_WIDTH) + x;
 
-    if (color) {
-        frame_buffer[buffer_idx] |= (1 << bit_within_byte);  // Set bit (pixel ON)
-    } else {
+    if (color)
+    {
+        frame_buffer[buffer_idx] |= (1 << bit_within_byte); // Set bit (pixel ON)
+    }
+    else
+    {
         frame_buffer[buffer_idx] &= ~(1 << bit_within_byte); // Clear bit (pixel OFF)
     }
 }
@@ -65,37 +71,41 @@ void oled_draw_pixel(int x, int y, int color) {
 // ==========================================
 // SPI Communication (Standard from previous step)
 // ==========================================
-void oled_send_cmd(uint8_t cmd) {
+void oled_send_cmd(uint8_t cmd)
+{
     spi_transaction_t t;
     memset(&t, 0, sizeof(t));
     t.length = 8;
     t.tx_buffer = &cmd;
-    t.user = (void*)0; // D/C line LOW for command
+    t.user = (void *)0; // D/C line LOW for command
     spi_device_polling_transmit(spi, &t);
 }
 
-void oled_send_data(const uint8_t *data, int len) {
+void oled_send_data(const uint8_t *data, int len)
+{
     spi_transaction_t t;
     memset(&t, 0, sizeof(t));
     t.length = len * 8;
     t.tx_buffer = data;
-    t.user = (void*)1; // D/C line HIGH for data
+    t.user = (void *)1; // D/C line HIGH for data
     spi_device_polling_transmit(spi, &t);
 }
 
-void oled_spi_pre_transfer_callback(spi_transaction_t *t) {
+void oled_spi_pre_transfer_callback(spi_transaction_t *t)
+{
     int dc = (int)t->user;
     gpio_set_level(PIN_NUM_DC, dc);
 }
 
 // Push the entire contents of RAM framebuffer to the hardware display
-void oled_flush_buffer() {
+void oled_flush_buffer()
+{
     // 1. Reset hardware window pointer to (0,0)
-    oled_send_cmd(0x21); // Set Column Address
-    oled_send_cmd(0);    // Start
+    oled_send_cmd(0x21);           // Set Column Address
+    oled_send_cmd(0);              // Start
     oled_send_cmd(OLED_WIDTH - 1); // End
-    oled_send_cmd(0x22); // Set Page Address
-    oled_send_cmd(0);    // Start
+    oled_send_cmd(0x22);           // Set Page Address
+    oled_send_cmd(0);              // Start
     oled_send_cmd(OLED_PAGES - 1); // End
 
     // 2. Burst all data via DMA
@@ -106,7 +116,8 @@ void oled_flush_buffer() {
 // ==========================================
 // Initialization & Main Logic
 // ==========================================
-void oled_init() {
+void oled_init()
+{
     gpio_set_level(PIN_NUM_RST, 0);
     vTaskDelay(pdMS_TO_TICKS(100));
     gpio_set_level(PIN_NUM_RST, 1);
@@ -114,10 +125,10 @@ void oled_init() {
 
     // Send optimized SSD1309 setup commands
     oled_send_cmd(0xAE); // Display OFF
-    
+
     // CRITICAL for framebuffer: Setup Horizontal Addressing Mode
     // Data written will automatically wrap across pages
-    oled_send_cmd(0x20); 
+    oled_send_cmd(0x20);
     oled_send_cmd(0x00); // 00 = Horizontal Mode
 
     // Basic setup remains same
@@ -135,7 +146,8 @@ void oled_init() {
     oled_send_cmd(0xAF); // Display ON
 }
 
-void app_main(void) {
+void app_main(void)
+{
     // Configure IO
     gpio_config_t io_conf = {
         .pin_bit_mask = (1ULL << PIN_NUM_DC) | (1ULL << PIN_NUM_RST),
@@ -151,12 +163,11 @@ void app_main(void) {
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
         // MUST fit the entire framebuffer size for DMA flush
-        .max_transfer_sz = OLED_WIDTH * OLED_PAGES 
-    };
+        .max_transfer_sz = OLED_WIDTH * OLED_PAGES};
 
     // Configure SPI Device
     spi_device_interface_config_t devcfg = {
-        .clock_speed_hz = 10 * 1000 * 1000,     // 10 MHz works well on 2.4 inch
+        .clock_speed_hz = 10 * 1000 * 1000, // 10 MHz works well on 2.4 inch
         .mode = 0,
         .spics_io_num = PIN_NUM_CS,
         .queue_size = 7,
@@ -171,25 +182,27 @@ void app_main(void) {
     oled_flush_buffer();
 
     ESP_LOGI(TAG, "Starting cool swirl animation...");
-    
+
     // Animation variables
     float angle_offset = 0.0;
     float center_x = OLED_WIDTH / 2.0;
     float center_y = OLED_HEIGHT / 2.0;
 
     // Swirl appearance tuners
-    float spiral_tightness = 0.8; 
+    float spiral_tightness = 0.8;
     float max_theta = 10 * M_PI; // How long is the spiral (in radians)
     float animation_speed = 0.2;
 
-    while (1) {
+    while (1)
+    {
         // 1. Clear the canvas (locally in RAM)
         oled_clear_buffer(0x00);
 
         // 2. Calculate the Archimedean Spiral Points
         // Polar coordinates: radius = tightness * theta
-        for (float theta = 0; theta < max_theta; theta += 0.08) {
-            
+        for (float theta = 0; theta < max_theta; theta += 0.08)
+        {
+
             float radius = spiral_tightness * theta;
 
             // Convert Polar (radius, theta) to Cartesian (x,y)
@@ -199,7 +212,7 @@ void app_main(void) {
 
             // Draw the point
             oled_draw_pixel(x_draw, y_draw, 1);
-            
+
             // OPTIONAL: Draw thicker lines by drawing neighboring pixels
             // oled_draw_pixel(x_draw+1, y_draw, 1);
             // oled_draw_pixel(x_draw, y_draw+1, 1);
@@ -210,9 +223,10 @@ void app_main(void) {
 
         // 4. Update the rotation for next frame
         angle_offset += animation_speed;
-        if (angle_offset > (2 * M_PI)) angle_offset -= (2 * M_PI); // keeps float accuracy
+        if (angle_offset > (2 * M_PI))
+            angle_offset -= (2 * M_PI); // keeps float accuracy
 
         // Add small delay to keep FPS stable (aprox 30-40 fps)
-        vTaskDelay(pdMS_TO_TICKS(10)); 
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
