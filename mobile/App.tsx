@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Import our organized Setup component
 import Setup from './Setup';
@@ -30,15 +31,12 @@ export default function App() {
   }, []);
 
   return (
-    <View style={styles.container}>
-      {/* The Setup component handles the centered Aera logo 
-          and switches themes automatically.
-      */}
-      <Setup />
-      
-      {/* Adaptive status bar (detects light/dark system theme) */}
-      <StatusBar style="auto" />
-    </View>
+    <SafeAreaProvider>
+      <View style={styles.container}>
+        <Setup />
+        <StatusBar style="auto" />
+      </View>
+    </SafeAreaProvider>
   );
 }
 
