@@ -77,8 +77,8 @@ void load_settings()
 {
     nvs_handle_t my_handle;
     esp_err_t err = nvs_open("storage", NVS_READWRITE, &my_handle);
-    if (err != ESP_OK)  
-        return; // Use defaults if NVS hasn't been written to yet
+    if (err != ESP_OK)
+        return;
 
     int8_t val8 = 0;
     if (nvs_get_i8(my_handle, "uvc_on", &val8) == ESP_OK)
@@ -180,42 +180,32 @@ static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 static void IRAM_ATTR rotary_encoder_isr(void *arg)
 {
-    // Static variables preserve their values between ISR calls
-    static uint8_t old_state = 3; // KY-040 idles at 11 (binary 3)
+    static uint8_t old_state = 3;
     static int8_t encoder_value = 0;
-
-    // Lookup table for valid quadrature movements
-    // +1 means forward, -1 means backward, 0 means invalid/bounce
     static const int8_t state_table[] = {0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0};
 
-    // Read both pins simultaneously
     uint8_t clk = gpio_get_level(ROTARY_PIN_NUM_CLK);
     uint8_t dt = gpio_get_level(ROTARY_PIN_NUM_DT);
     uint8_t current_state = (clk << 1) | dt;
-
-    // Combine old state and new state to get a 4-bit index (0 to 15)
     uint8_t index = (old_state << 2) | current_state;
 
-    // Add the movement from the lookup table
     encoder_value += state_table[index];
     old_state = current_state;
 
-    // A standard KY-040 goes through 4 state changes per physical "click"
-    // Only register a menu movement if a full physical click is completed (+4 or -4)
     if (encoder_value > 3)
     {
         encoder_diff++;
-        encoder_value = 0; // Reset after a full click
+        encoder_value = 0;
     }
     else if (encoder_value < -3)
     {
         encoder_diff--;
-        encoder_value = 0; // Reset after a full click
+        encoder_value = 0;
     }
 }
 
 // ==========================================
-// Main Application
+// Application States
 // ==========================================
 enum
 {
@@ -223,8 +213,10 @@ enum
     STATE_MAIN_MENU,
     STATE_SUB_MENU,
     STATE_SETTINGS_MENU,
-    STATE_ABOUT_MENU
+    STATE_ABOUT_MENU,
+    STATE_DRYING
 };
+
 enum
 {
     EDIT_NONE,
@@ -232,6 +224,89 @@ enum
     EDIT_TIME_VAL2,
     EDIT_TEMP
 };
+
+// ==========================================
+// Active Timer UI Renderer
+// ==========================================
+void drawTimer_Active(uint32_t remaining_secs, uint32_t total_secs, bool is_paused)
+{
+    u8g2_SetBitmapMode(&u8g2, 1);
+    u8g2_SetFontMode(&u8g2, 1);
+
+    // Outline Border
+    u8g2_DrawFrame(&u8g2, 0, 61, 128, 3);
+
+    // Progress Bar Fill (Fills up as time elapses)
+    if (total_secs > 0)
+    {
+        uint32_t elapsed_secs = total_secs - remaining_secs;
+        uint32_t fill_w = (126 * elapsed_secs) / total_secs;
+        u8g2_DrawBox(&u8g2, 1, 62, fill_w, 1);
+    }
+
+    // Smart Format Switching Logic
+    int display_val1 = 0;
+    int display_val2 = 0;
+    bool showing_hr_min = false;
+
+    // If remaining time is 1 hour or more, display [hr:min]
+    if (remaining_secs >= 3600)
+    {
+        display_val1 = remaining_secs / 3600;
+        display_val2 = (remaining_secs % 3600) / 60;
+        showing_hr_min = true;
+    }
+    // If under an hour, dynamically switch down to [min:sec]
+    else
+    {
+        display_val1 = remaining_secs / 60;
+        display_val2 = remaining_secs % 60;
+        showing_hr_min = false;
+    }
+
+    // Dynamic Timer Text with Blinking Colon
+    char separator = ':';
+    // Only blink if the timer is actively running
+    if (!is_paused && remaining_secs > 0)
+    {
+        // Toggle the separator every 500ms
+        if ((xTaskGetTickCount() * portTICK_PERIOD_MS / 500) % 2 == 0)
+        {
+            separator = ' '; // Replace with space to hide it
+        }
+    }
+
+    char time_str[16];
+    // Use %c to inject our dynamic separator character
+    snprintf(time_str, sizeof(time_str), "%02d%c%02d", display_val1, separator, display_val2);
+    u8g2_SetFont(&u8g2, u8g2_font_profont29_tr);
+    u8g2_DrawStr(&u8g2, 24, 36, time_str);
+
+    // Dynamic Format Label
+    u8g2_SetFont(&u8g2, u8g2_font_profont10_tr);
+    u8g2_DrawStr(&u8g2, 42, 44, showing_hr_min ? "hr : min" : "min : sec");
+
+    // Dynamic Status Label
+    u8g2_SetFont(&u8g2, u8g2_font_4x6_tr);
+    u8g2_DrawStr(&u8g2, 1, 60, is_paused ? "Paused" : "Now Drying");
+
+    // Dynamic Percentage
+    char pct_str[16];
+    if (total_secs > 0)
+    {
+        // Percentage of completion (fills up to 100%)
+        uint32_t pct = ((total_secs - remaining_secs) * 100) / total_secs;
+        snprintf(pct_str, sizeof(pct_str), "%lu%%", pct);
+    }
+    else
+    {
+        strcpy(pct_str, "100%");
+    }
+
+    // Quick right alignment for the percentage string
+    int pct_x = 126 - u8g2_GetUTF8Width(&u8g2, pct_str);
+    u8g2_DrawStr(&u8g2, pct_x, 60, pct_str);
+}
 
 void app_main(void)
 {
@@ -244,7 +319,7 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(err);
 
-    load_settings(); // Load the saved preferences into your variables
+    load_settings();
 
     ESP_LOGI(TAG, "Initializing Hardware...");
 
@@ -277,13 +352,11 @@ void app_main(void)
         .intr_type = GPIO_INTR_DISABLE};
     gpio_config(&rot_conf);
 
-    // --- NEW: Trigger on ANY edge (Rising or Falling) for BOTH pins ---
     gpio_set_intr_type(ROTARY_PIN_NUM_CLK, GPIO_INTR_ANYEDGE);
     gpio_set_intr_type(ROTARY_PIN_NUM_DT, GPIO_INTR_ANYEDGE);
 
     gpio_install_isr_service(0);
 
-    // Attach the same ISR handler to both pins
     gpio_isr_handler_add(ROTARY_PIN_NUM_CLK, rotary_encoder_isr, NULL);
     gpio_isr_handler_add(ROTARY_PIN_NUM_DT, rotary_encoder_isr, NULL);
 
@@ -302,6 +375,17 @@ void app_main(void)
     // Settings States
     int settings_menu_idx = 0;
 
+    // Global Timer Tracking Variables
+    uint32_t total_drying_seconds = 0;
+    uint32_t remaining_seconds = 0;
+    bool is_paused = false;
+    uint32_t last_timer_tick = 0;
+
+    // Button State Variables
+    bool button_was_pressed = false;
+    uint32_t button_press_tick = 0;
+    bool long_press_handled = false;
+
     while (1)
     {
         // --- 1. Splash Screen ---
@@ -315,7 +399,35 @@ void app_main(void)
             continue;
         }
 
-        // --- 2. Input Handling (Encoder Rotation via ISR) ---
+        // --- 2. Timer Processing (Runs continuously in background) ---
+        if (app_state == STATE_DRYING)
+        {
+            if (!is_paused && remaining_seconds > 0)
+            {
+                uint32_t current_tick = xTaskGetTickCount();
+                // Check if exactly 1000ms has elapsed since the last recorded tick
+                if ((current_tick - last_timer_tick) >= pdMS_TO_TICKS(1000))
+                {
+                    remaining_seconds--;
+                    last_timer_tick += pdMS_TO_TICKS(1000); // Prevents drift
+                }
+            }
+            else if (remaining_seconds == 0 && total_drying_seconds > 0)
+            {
+                // Finished!
+                app_state = STATE_MAIN_MENU;
+                total_drying_seconds = 0; // Reset
+
+                // Alarm
+                for (int i = 0; i < 3; i++)
+                {
+                    buzzer_beep(buzzer_on);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                }
+            }
+        }
+
+        // --- 3. Input Handling (Encoder Rotation via ISR) ---
         int rot_dir = 0;
 
         portENTER_CRITICAL(&mux);
@@ -342,9 +454,9 @@ void app_main(void)
                 {
                     sub_menu_idx += rot_dir;
                     if (sub_menu_idx < 0)
-                        sub_menu_idx = 4;
-                    if (sub_menu_idx > 4)
-                        sub_menu_idx = 0;
+                        sub_menu_idx = 5; // <-- Changed from 4 to 5
+                    if (sub_menu_idx > 5)
+                        sub_menu_idx = 0; // <-- Changed from 4 to 5
                 }
                 else if (edit_state == EDIT_TIME_VAL1)
                 {
@@ -369,13 +481,49 @@ void app_main(void)
             }
         }
 
-        // --- 3. Input Polling (Button Click) ---
-        if (gpio_get_level(ROTARY_PIN_NUM_SW) == 0)
+        // --- 4. Input Polling (Non-Blocking Button Handler) ---
+        bool current_button_state = (gpio_get_level(ROTARY_PIN_NUM_SW) == 0);
+
+        if (current_button_state && !button_was_pressed)
         {
-            vTaskDelay(pdMS_TO_TICKS(20)); // Debounce
+            // Button just went down
+            vTaskDelay(pdMS_TO_TICKS(20)); // debounce
             if (gpio_get_level(ROTARY_PIN_NUM_SW) == 0)
             {
-                buzzer_beep(buzzer_on);
+                button_was_pressed = true;
+                button_press_tick = xTaskGetTickCount();
+                long_press_handled = false;
+            }
+        }
+        else if (current_button_state && button_was_pressed)
+        {
+            // Button is actively being held down
+            if (!long_press_handled && app_state == STATE_DRYING)
+            {
+                // Check if held for 3 seconds
+                if ((xTaskGetTickCount() - button_press_tick) >= pdMS_TO_TICKS(3000))
+                {
+                    long_press_handled = true;
+                    app_state = STATE_SUB_MENU; // Abort straight back to setup
+                    sub_menu_idx = 0;
+                    edit_state = EDIT_NONE;
+
+                    // Long Beep feedback
+                    buzzer_beep(buzzer_on);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    buzzer_beep(buzzer_on);
+                }
+            }
+        }
+        else if (!current_button_state && button_was_pressed)
+        {
+            // Button was just released
+            button_was_pressed = false;
+
+            // Only execute normal click logic if a long press didn't already happen
+            if (!long_press_handled)
+            {
+                buzzer_beep(buzzer_on); // Short press feedback
 
                 if (app_state == STATE_MAIN_MENU)
                 {
@@ -408,7 +556,40 @@ void app_main(void)
                         else if (sub_menu_idx == 3)
                             temp_is_celsius = !temp_is_celsius;
                         else if (sub_menu_idx == 4)
+                        {
+                            // --- BUG FIX: Prevent starting with 00:00 ---
+                            if (time_val1 == 0 && time_val2 == 0)
+                            {
+                                // Error beep (two quick beeps)
+                                buzzer_beep(buzzer_on);
+                                vTaskDelay(pdMS_TO_TICKS(50));
+                                buzzer_beep(buzzer_on);
+                            }
+                            else
+                            {
+                                // --- Transition into Drying State & Load Timer ---
+                                app_state = STATE_DRYING;
+                                is_paused = false;
+
+                                // Convert UI set time to pure seconds
+                                if (time_is_min_sec)
+                                {
+                                    total_drying_seconds = (time_val1 * 60) + time_val2;
+                                }
+                                else
+                                {
+                                    total_drying_seconds = (time_val1 * 3600) + (time_val2 * 60);
+                                }
+                                remaining_seconds = total_drying_seconds;
+                                last_timer_tick = xTaskGetTickCount();
+                            }
+                        }
+                        // --- EXIT BUTTON ---
+                        else if (sub_menu_idx == 5)
+                        {
                             app_state = STATE_MAIN_MENU;
+                            sub_menu_idx = 0; // Reset index for next time
+                        }
                     }
                     else if (edit_state == EDIT_TIME_VAL1)
                         edit_state = EDIT_TIME_VAL2;
@@ -417,12 +598,22 @@ void app_main(void)
                     else if (edit_state == EDIT_TEMP)
                         edit_state = EDIT_NONE;
                 }
+                else if (app_state == STATE_DRYING)
+                {
+                    // Short press during drying simply pauses/resumes
+                    is_paused = !is_paused;
+
+                    // Reset the reference tick when resuming to prevent time jumping
+                    if (!is_paused)
+                    {
+                        last_timer_tick = xTaskGetTickCount();
+                    }
+                }
                 else if (app_state == STATE_SETTINGS_MENU)
                 {
                     if (settings_menu_idx == 0)
                     {
                         ESP_LOGI(TAG, "Triggering Wi-Fi Pairing Mode...");
-                        // Trigger your smart config/pairing sequence here
                     }
                     else if (settings_menu_idx == 1)
                     {
@@ -438,12 +629,11 @@ void app_main(void)
                     {
                         brightness_level = (brightness_level + 1) % 3;
                         if (brightness_level == 0)
-                            u8g2_SetContrast(&u8g2, 1); // Low
+                            u8g2_SetContrast(&u8g2, 1);
                         else if (brightness_level == 1)
-                            u8g2_SetContrast(&u8g2, 127); // Mid
+                            u8g2_SetContrast(&u8g2, 127);
                         else
-                            u8g2_SetContrast(&u8g2, 255); // High
-
+                            u8g2_SetContrast(&u8g2, 255);
                         save_settings();
                     }
                     else if (settings_menu_idx == 4)
@@ -453,19 +643,12 @@ void app_main(void)
                 }
                 else if (app_state == STATE_ABOUT_MENU)
                 {
-                    // Clicking anywhere in About Menu returns to Main Menu
                     app_state = STATE_MAIN_MENU;
-                }
-
-                // Wait for button release
-                while (gpio_get_level(ROTARY_PIN_NUM_SW) == 0)
-                {
-                    vTaskDelay(pdMS_TO_TICKS(10));
                 }
             }
         }
 
-        // --- 4. Render UI ---
+        // --- 5. Render UI ---
         u8g2_ClearBuffer(&u8g2);
         u8g2_SetBitmapMode(&u8g2, 1);
         u8g2_SetFontMode(&u8g2, 1);
@@ -491,14 +674,20 @@ void app_main(void)
         {
             u8g2_SetFont(&u8g2, u8g2_font_profont11_tf);
 
-            u8g2_DrawStr(&u8g2, 7, 10, "Time");
-            u8g2_DrawStr(&u8g2, 7, 22, "Temp");
-            u8g2_DrawStr(&u8g2, 7, 33, "Time Format");
-            u8g2_DrawStr(&u8g2, 7, 44, "Temp Format");
-            u8g2_DrawStr(&u8g2, 7, 60, "[Start Drying]");
+            // Dynamic camera offset: If on the last item, push everything up by 12 pixels
+            int scroll_y = (sub_menu_idx == 5) ? 12 : 0;
 
-            u8g2_DrawStr(&u8g2, 73, 33, time_is_min_sec ? "[min:sec]" : "[hr:min]");
-            u8g2_DrawUTF8(&u8g2, 73, 44, temp_is_celsius ? "[°C]" : "[°F]");
+            // Left Labels
+            u8g2_DrawStr(&u8g2, 7, 10 - scroll_y, "Time");
+            u8g2_DrawStr(&u8g2, 7, 22 - scroll_y, "Temp");
+            u8g2_DrawStr(&u8g2, 7, 34 - scroll_y, "Time Format");
+            u8g2_DrawStr(&u8g2, 7, 46 - scroll_y, "Temp Format");
+            u8g2_DrawStr(&u8g2, 7, 58 - scroll_y, "[Start Drying]");
+            u8g2_DrawStr(&u8g2, 7, 70 - scroll_y, "[Exit]"); // Physically off-screen until scrolled
+
+            // Right Align Labels
+            u8g2_DrawStr(&u8g2, 73, 34 - scroll_y, time_is_min_sec ? "[min:sec]" : "[hr:min]");
+            u8g2_DrawUTF8(&u8g2, 73, 46 - scroll_y, temp_is_celsius ? "[°C]" : "[°F]");
 
             char buf[32];
             if (edit_state == EDIT_TIME_VAL1 && blink_off)
@@ -507,18 +696,26 @@ void app_main(void)
                 sprintf(buf, "[%02d:  ]", time_val1);
             else
                 sprintf(buf, "[%02d:%02d]", time_val1, time_val2);
-            u8g2_DrawStr(&u8g2, 30, 10, buf);
+            u8g2_DrawStr(&u8g2, 30, 10 - scroll_y, buf);
 
             if (edit_state == EDIT_TEMP && blink_off)
                 sprintf(buf, temp_is_celsius ? "[  °C]" : "[  °F]");
             else
                 sprintf(buf, temp_is_celsius ? "[%02d°C]" : "[%02d°F]", temp_val);
-            u8g2_DrawUTF8(&u8g2, 30, 22, buf);
+            u8g2_DrawUTF8(&u8g2, 30, 22 - scroll_y, buf);
 
-            int frame_y[] = {0, 11, 23, 34, 50};
-            int cursor_y[] = {3, 15, 26, 37, 53};
-            u8g2_DrawFrame(&u8g2, 0, frame_y[sub_menu_idx], 128, 13);
-            u8g2_DrawXBM(&u8g2, 2, cursor_y[sub_menu_idx], 4, 7, image_cursor_bits);
+            // Coordinates for the highlight box and cursor
+            int frame_y[] = {0, 12, 24, 36, 48, 60};
+            int cursor_y[] = {3, 15, 27, 39, 51, 63};
+
+            u8g2_DrawFrame(&u8g2, 0, frame_y[sub_menu_idx] - scroll_y, 128, 13);
+            u8g2_DrawXBM(&u8g2, 2, cursor_y[sub_menu_idx] - scroll_y, 4, 7, image_cursor_bits);
+        }
+
+        // --- Active Drying Timer View ---
+        else if (app_state == STATE_DRYING)
+        {
+            drawTimer_Active(remaining_seconds, total_drying_seconds, is_paused);
         }
 
         // --- Settings Menu View ---
@@ -557,7 +754,6 @@ void app_main(void)
 
             u8g2_DrawStr(&u8g2, 8, 58, "[Exit]");
 
-            // Static cursor and highlight targeting Exit
             u8g2_DrawFrame(&u8g2, 0, 48, 128, 13);
             u8g2_DrawXBM(&u8g2, 2, 51, 4, 7, image_cursor_bits);
         }
