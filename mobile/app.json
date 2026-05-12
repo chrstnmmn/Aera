@@ -7,13 +7,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
     "androidNavigationBar": {
       "visible": "leanback",
       "barStyle": "light-content",
       "backgroundColor": "#060606"
     },
-
     "splash": {
       "image": "./assets/logo-light.png",
       "resizeMode": "contain",
@@ -43,6 +41,10 @@
           "image": "./assets/logo-dark.png",
           "backgroundColor": "#000000"
         }
+      },
+      "bundleIdentifier": "com.chrstnmmnl.aeramobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -59,10 +61,20 @@
         }
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "76d7da64-32ce-49be-ace6-6eea487ec9f7"
+      }
     }
   }
 }
