@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; // <--- useEffect lives here!
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   useColorScheme,
@@ -16,9 +16,14 @@ import WelcomeScreen from "./WelcomeScreen";
 import PowerUpScreen from "./PowerUpScreen";
 import BluetoothScreen from "./BluetoothScreen";
 import WifiSetupScreen from "./WifiSetupScreen";
+import SuccessScreen from "./SuccessScreen";
 import GoBackIcon from "./GoBackIcon";
 
-const Setup = () => {
+interface SetupProps {
+  onComplete: () => void;
+}
+
+const Setup: React.FC<SetupProps> = ({ onComplete }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const isDarkMode = useColorScheme() === "dark";
 
@@ -30,21 +35,18 @@ const Setup = () => {
     pillInactive: isDarkMode ? "#333333" : "#D9D9D9",
   };
 
+  // Sync Android System Navigation Bar with theme
   useEffect(() => {
     const syncNavBar = async () => {
       if (Platform.OS === "android") {
         try {
-          // We remove setBackgroundColorAsync entirely to stop the warning.
-          // We only focus on the button icons (ButtonStyle).
           const buttonStyle = isDarkMode ? "light" : "dark";
-
           await NavigationBar.setButtonStyleAsync(buttonStyle);
         } catch (e) {
-          console.log("Nav bar icons failed to sync:", e);
+          console.log("Nav bar sync error:", e);
         }
       }
     };
-
     syncNavBar();
   }, [isDarkMode]);
 
@@ -56,45 +58,35 @@ const Setup = () => {
     <SafeAreaView
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      {/* HEADER SECTION - Now Fixed Center */}
+      {/* HEADER: Centered Pager with Absolute Back Button */}
       <View style={styles.headerContainer}>
-        {/* Absolute positioned button so it doesn't push the dots */}
-        {currentStep > 0 && (
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={handleBack}
-            activeOpacity={0.7}
-          >
+        {currentStep > 0 && currentStep < 4 && (
+          <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
             <GoBackIcon fill={theme.text} />
             <Text style={[styles.backBtnText, { color: theme.text }]}>
               {currentStep === 3 ? "Cancel" : "Go Back"}
             </Text>
           </TouchableOpacity>
         )}
-
-        {/* This will now always stay in the true center of the screen */}
-        <PagerIndicator step={currentStep} theme={theme} totalSteps={4} />
+        <PagerIndicator step={currentStep} theme={theme} totalSteps={5} />
       </View>
 
-      {/* SCREEN ROUTER */}
+      {/* ROUTER: Logic to swap screens */}
       <View style={styles.screenContainer}>
         {currentStep === 0 && (
           <WelcomeScreen theme={theme} onNext={() => setCurrentStep(1)} />
         )}
-
         {currentStep === 1 && (
           <PowerUpScreen theme={theme} onNext={() => setCurrentStep(2)} />
         )}
-
         {currentStep === 2 && (
           <BluetoothScreen theme={theme} onNext={() => setCurrentStep(3)} />
         )}
-
         {currentStep === 3 && (
-          <WifiSetupScreen
-            theme={theme}
-            onNext={() => console.log("Setup Complete!")}
-          />
+          <WifiSetupScreen theme={theme} onNext={() => setCurrentStep(4)} />
+        )}
+        {currentStep === 4 && (
+          <SuccessScreen theme={theme} onFinish={onComplete} />
         )}
       </View>
     </SafeAreaView>
@@ -102,34 +94,23 @@ const Setup = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   headerContainer: {
     height: 60,
     width: "100%",
-    // These two lines ensure the PagerIndicator is perfectly centered
     alignItems: "center",
     justifyContent: "center",
-    position: "relative",
+    zIndex: 10,
   },
   backBtn: {
-    // Absolute positioning removes the button from the Flexbox calculations
     position: "absolute",
     left: 25,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    zIndex: 10, // Ensure it stays clickable on top of other layers
   },
-  backBtnText: {
-    fontSize: 18,
-    fontWeight: "700",
-    fontFamily: "System",
-  },
-  screenContainer: {
-    flex: 1,
-  },
+  backBtnText: { fontSize: 18, fontWeight: "700" },
+  screenContainer: { flex: 1 },
 });
 
 export default Setup;
