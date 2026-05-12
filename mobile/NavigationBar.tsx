@@ -1,7 +1,7 @@
 import React from "react";
 import { View, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { useSafeAreaInsets } from "react-native-safe-area-context"; // <--- Add this
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface NavProps {
 	activeTab: "dashboard" | "timer" | "settings";
@@ -14,7 +14,7 @@ const NavigationBar: React.FC<NavProps> = ({
 	onTabChange,
 	theme,
 }) => {
-	const insets = useSafeAreaInsets(); // <--- Get the device insets
+	const insets = useSafeAreaInsets();
 	const isDarkMode = theme.background === "#060606";
 
 	const activeColor = isDarkMode ? "#1CA7ED" : "#1497D9";
@@ -29,7 +29,8 @@ const NavigationBar: React.FC<NavProps> = ({
 				styles.navContainer,
 				{
 					backgroundColor: bgColor,
-					// This adds the extra space needed for iOS Home Bar or Android Gesture Bar
+					// 1. Calculate total height: Base height (56) + System Insets
+					// 2. Padding bottom ensures content stays above the system gesture/button bar
 					height: 56 + insets.bottom,
 					paddingBottom: insets.bottom,
 				},
@@ -105,14 +106,14 @@ const NavigationBar: React.FC<NavProps> = ({
 const styles = StyleSheet.create({
 	navContainer: {
 		width: "100%",
-		// We remove the hard height from here and handle it dynamically in the View above
 		flexDirection: "row",
 		justifyContent: "space-around",
-		alignItems: "center",
+		// Remove alignItems: 'center' to allow content to sit at the top of the container
+		alignItems: "flex-start",
 	},
 	tab: {
 		flex: 1,
-		height: 56, // We keep the touch area height consistent
+		height: 56, // Fixed height for the icons and hit area
 		justifyContent: "center",
 		alignItems: "center",
 	},

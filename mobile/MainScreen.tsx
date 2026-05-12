@@ -1,26 +1,27 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Text } from "react-native";
 import NavigationBar from "./NavigationBar";
-import AeraStatusBar from "./AeraStatusBar"; // Import our new Status Bar
+import AeraStatusBar from "./AeraStatusBar";
 
-// Temporary lightweight layouts
 const DashboardPlaceholder = ({ theme }: any) => (
 	<View style={styles.center}>
-		<Text style={{ color: theme.text, fontFamily: "SFPro-Black" }}>
+		<Text style={[styles.placeholderText, { color: theme.text }]}>
 			DASHBOARD SCREEN
 		</Text>
 	</View>
 );
+
 const TimerPlaceholder = ({ theme }: any) => (
 	<View style={styles.center}>
-		<Text style={{ color: theme.text, fontFamily: "SFPro-Black" }}>
+		<Text style={[styles.placeholderText, { color: theme.text }]}>
 			TIMER SETUP SCREEN
 		</Text>
 	</View>
 );
+
 const SettingsPlaceholder = ({ theme }: any) => (
 	<View style={styles.center}>
-		<Text style={{ color: theme.text, fontFamily: "SFPro-Black" }}>
+		<Text style={[styles.placeholderText, { color: theme.text }]}>
 			SETTINGS SCREEN
 		</Text>
 	</View>
@@ -36,21 +37,17 @@ const MainScreen: React.FC<MainProps> = ({ theme, onLogout }) => {
 		"dashboard" | "timer" | "settings"
 	>("dashboard");
 
-	// --- TELEMETRY STATE ---
-	// This is where your ESP32 data will eventually be stored
 	const [deviceStatus, setDeviceStatus] = useState({
-		water: 0 as 0 | 25 | 50 | 75 | 100 | null,
+		water: 75 as 0 | 25 | 50 | 75 | 100 | null,
 		door: "locked" as "locked" | "unlocked" | "inactive",
-		uvActive: false,
-		wifiLevel: 1 as 1 | 2 | 3 | 4,
+		uvActive: true,
+		wifiLevel: 3 as 1 | 2 | 3 | 4,
 	});
 
 	return (
 		<View style={[styles.container, { backgroundColor: theme.background }]}>
-			{/* 1. STATUS BAR: Fixed at the top */}
 			<AeraStatusBar theme={theme} status={deviceStatus} />
 
-			{/* 2. CONTENT AREA: Changes based on tab */}
 			<View style={styles.content}>
 				{activeTab === "dashboard" && (
 					<DashboardPlaceholder theme={theme} />
@@ -61,11 +58,10 @@ const MainScreen: React.FC<MainProps> = ({ theme, onLogout }) => {
 				)}
 			</View>
 
-			{/* 3. NAVIGATION BAR: Fixed at the bottom */}
 			<NavigationBar
 				theme={theme}
 				activeTab={activeTab}
-				onTabChange={(tab) => setActiveTab(tab)}
+				onTabChange={(tab: any) => setActiveTab(tab)}
 			/>
 		</View>
 	);
@@ -76,12 +72,17 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	content: {
-		flex: 1, // Takes up all remaining space between status bar and nav bar
+		flex: 1,
 	},
 	center: {
 		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
+	},
+	placeholderText: {
+		fontFamily: "SFPro-Black",
+		fontSize: 18,
+		letterSpacing: 1,
 	},
 });
 

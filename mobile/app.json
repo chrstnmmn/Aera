@@ -8,10 +8,9 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "androidNavigationBar": {
-      "visible": "leanback",
-      "barStyle": "light-content",
-      "backgroundColor": "#060606"
-    },
+      "barStyle": "dark-content",
+      "backgroundColor": "#E7E7E7"
+        },
     "splash": {
       "image": "./assets/logo-light.png",
       "resizeMode": "contain",
@@ -67,7 +66,8 @@
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_CONNECT"
-      ]
+      ],
+      "package": "com.chrstnmmnl.aeramobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"

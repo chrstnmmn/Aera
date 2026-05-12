@@ -1,11 +1,5 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from "react-native";
+import React, { useRef } from "react";
+import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
 import HardwareIcon from "./HardwareIcon";
 
 interface Props {
@@ -24,30 +18,56 @@ const DeviceCard: React.FC<Props> = ({
   const blueBoxBg = isDarkMode ? "#1CA7ED" : "#1497D9";
   const boxTextColor = isDarkMode ? "#E7E7E7" : "#2E2E2E";
 
-  // --- DYNAMIC SHADOW LOGIC ---
-  // On Android, we kill elevation in Dark Mode to prevent the "grey glow"
-  const androidElevation = isDarkMode ? 0 : 4;
+  // --- SHRINK PRESS ANIMATION ---
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.85, // Shrinks to 85% size
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1, // Snaps back to full size
+      friction: 4,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // --- ANDROID ELEVATION ---
+  const elevationBase = isDarkMode ? 0 : 2;
+  const elevationTop = isDarkMode ? 0 : 4;
+  const elevationText = isDarkMode ? 0 : 6;
 
   return (
-    <TouchableOpacity
-      key={isDarkMode ? "dark-card" : "light-card"}
-      style={[
-        styles.cardContainer,
-        { backgroundColor: blueBoxBg, elevation: androidElevation },
-      ]}
-      activeOpacity={0.8}
-      onPress={onConnect}
+    <View 
+      key={`card-${isDarkMode}`} 
+      style={styles.cardContainer}
     >
-      {/* Left Box (Device Name & Icon) */}
+      {/* 1. THE BASE LAYER (Blue) */}
       <View
         style={[
-          styles.leftBox,
+          styles.fullBlueBase,
           {
-            backgroundColor: leftBoxBg,
-            elevation: androidElevation, // Keep this synced
+            backgroundColor: blueBoxBg,
+            elevation: elevationBase,
             shadowColor: "#000",
           },
-          isDarkMode && styles.leftBoxBorderDark,
+        ]}
+      />
+
+      {/* 2. THE TOP LAYER (Gray Overlay) */}
+      <View
+        style={[
+          styles.overlayGrayBox,
+          {
+            backgroundColor: leftBoxBg,
+            elevation: elevationTop,
+            shadowColor: "#000",
+          },
+          isDarkMode && styles.darkBorder,
         ]}
       >
         <HardwareIcon fill={boxTextColor} />
@@ -60,35 +80,50 @@ const DeviceCard: React.FC<Props> = ({
         </Text>
       </View>
 
-      {/* Right Box (Connect Text) */}
-      <View style={styles.connectTextWrapper}>
-        <Text style={styles.connectBtnText} numberOfLines={1}>
-          Connect
-        </Text>
-      </View>
-    </TouchableOpacity>
+      {/* 3. INTERACTIVE LAYER (The Shrinking Text) */}
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={onConnect}
+        style={styles.buttonHitbox}
+      >
+        <Animated.View
+          style={{
+            elevation: elevationText,
+            transform: [{ scale: scaleAnim }], // Swapped slide for scale
+            zIndex: 10,
+          }}
+        >
+          <Text style={styles.connectBtnText} numberOfLines={1}>
+            Connect
+          </Text>
+        </Animated.View>
+      </Pressable>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   cardContainer: {
     width: "100%",
-    minHeight: 66.25,
-    flexDirection: "row",
-    borderRadius: 20,
-
-    // iOS stays the same as it handles transparency/color perfectly
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 7,
-      },
-    }),
+    height: 66.25,
+    position: "relative",
   },
-  leftBox: {
-    flex: 1,
+  fullBlueBase: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 20,
+    borderWidth: 0,
+  },
+  overlayGrayBox: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: "71%",
     borderTopLeftRadius: 20,
     borderBottomLeftRadius: 20,
     borderTopRightRadius: 10,
@@ -98,22 +133,12 @@ const styles = StyleSheet.create({
     paddingLeft: 22,
     paddingRight: 15,
     gap: 12,
-    zIndex: 2, // Keeps it visually above the blue box even without elevation
-
-    ...Platform.select({
-      ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 4, height: 0 },
-        shadowOpacity: 0.15,
-        shadowRadius: 4,
-      },
-    }),
   },
-  leftBoxBorderDark: {
+  darkBorder: {
+    borderLeftWidth: 1,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderLeftWidth: 1,
-    borderColor: "rgba(217, 217, 217, 0.50)",
+    borderColor: "rgba(217, 217, 217, 0.2)",
   },
   deviceName: {
     flex: 1,
@@ -121,10 +146,14 @@ const styles = StyleSheet.create({
     fontSize: 20,
     letterSpacing: -0.3,
   },
-  connectTextWrapper: {
+  buttonHitbox: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: "29%",
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 28,
   },
   connectBtnText: {
     color: "#E7E7E7",

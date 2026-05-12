@@ -191,13 +191,13 @@ const WifiSetupScreen: React.FC<Props> = ({ theme, onNext }) => {
 const styles = StyleSheet.create({
   content: {
     flex: 1,
-    paddingHorizontal: 30,
+    paddingHorizontal: 20,
     justifyContent: "space-between",
     backgroundColor: "transparent",
   },
   wifiGraphicWrapper: {
     position: "absolute",
-    bottom: -height * 0.1,
+    top: height * 0.7, 
     left: -width * 0.3,
     transform: [{ rotate: "7deg" }],
     zIndex: -1,

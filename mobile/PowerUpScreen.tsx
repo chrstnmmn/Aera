@@ -67,7 +67,7 @@ const PowerUpScreen: React.FC<Props> = ({ theme, onNext }) => {
 const styles = StyleSheet.create({
 	content: {
 		flex: 1,
-		paddingHorizontal: 30,
+		paddingHorizontal: 20,
 		justifyContent: "space-between",
 	},
 	massiveText: {

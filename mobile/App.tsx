@@ -1,15 +1,15 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { StyleSheet, View, useColorScheme } from "react-native";
+import { StyleSheet, View, useColorScheme, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import * as NavigationBar from "expo-navigation-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { useFonts } from "expo-font"; // <--- Added
+import { useFonts } from "expo-font";
 
 // Screens
 import Setup from "./Setup";
 import MainScreen from "./MainScreen";
 
-// Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const SKIP_SETUP = false;
@@ -18,10 +18,8 @@ export default function App() {
 	const [isSetupComplete, setIsSetupComplete] = useState(SKIP_SETUP);
 	const isDarkMode = useColorScheme() === "dark";
 
-	// --- FONT LOADING ---
+	// --- 1. FONT LOADING (Static Only) ---
 	const [fontsLoaded, fontError] = useFonts({
-		// Sliced Variable Instances
-		// Static Weights
 		"SFPro-Black": require("./assets/fonts/Black.ttf"),
 		"SFPro-Heavy": require("./assets/fonts/Heavy.ttf"),
 		"SFPro-Bold": require("./assets/fonts/Bold.ttf"),
@@ -29,23 +27,53 @@ export default function App() {
 		"SFPro-Regular": require("./assets/fonts/Regular.ttf"),
 	});
 
+	// --- 2. THEME CONFIGURATION ---
+	const barSurfaceColor = isDarkMode ? "#141414" : "#E7E7E7";
+
 	const theme = {
 		background: isDarkMode ? "#060606" : "#FFFFFF",
 		text: isDarkMode ? "#FFFFFF" : "#2E2E2E",
 		primaryBlue: isDarkMode ? "#1CA7ED" : "#1497D9",
 		boxGraphic: isDarkMode ? "#E7E7E7" : "#00A0E9",
 		pillInactive: isDarkMode ? "#333333" : "#D9D9D9",
+		barSurface: barSurfaceColor,
 	};
 
-	// --- SPLASH SCREEN LOGIC ---
+	// --- 3. ANDROID SYSTEM UI SYNC (With Bridge Delay) ---
+	useEffect(() => {
+		let timeoutId: ReturnType<typeof setTimeout>;
+
+		async function syncSystemBars() {
+			if (Platform.OS === "android") {
+				try {
+					// 1. Force the OS bar to be invisible glass
+					await NavigationBar.setBackgroundColorAsync("#00000000");
+
+					// 2. Float it over the app so it never steals physical screen space
+					await NavigationBar.setPositionAsync("absolute");
+
+					// 3. Hide the soft keys entirely
+					await NavigationBar.setVisibilityAsync("hidden");
+
+					// 4. Allow temporary swipe-up access (standard for immersive apps)
+					await NavigationBar.setBehaviorAsync("overlay-swipe");
+				} catch (error) {
+					console.warn("Failed to set navigation bar state", error);
+				}
+			}
+		}
+
+		timeoutId = setTimeout(syncSystemBars, 150);
+		return () => clearTimeout(timeoutId);
+	}, []);
+
+	// --- 4. SPLASH SCREEN LOGIC ---
 	const onLayoutRootView = useCallback(async () => {
 		if (fontsLoaded || fontError) {
-			// Hide the splash screen once fonts are ready
 			await SplashScreen.hideAsync();
 		}
 	}, [fontsLoaded, fontError]);
 
-	// Guard clause: Don't render UI until fonts are ready
 	if (!fontsLoaded && !fontError) {
 		return null;
 	}
@@ -57,17 +85,28 @@ export default function App() {
 					styles.container,
 					{ backgroundColor: theme.background },
 				]}
-				onLayout={onLayoutRootView} // <--- Triggered when View mounts
+				onLayout={onLayoutRootView}
 			>
+				<StatusBar
+					style={isDarkMode ? "light" : "dark"}
+					// If in MainScreen, use the bar surface color. If in Setup, use the deep background color.
+					backgroundColor={
+						isSetupComplete ? theme.barSurface : theme.background
+					}
+					translucent={false}
+				/>
+
 				{isSetupComplete ? (
 					<MainScreen
 						theme={theme}
 						onLogout={() => setIsSetupComplete(false)}
 					/>
 				) : (
-					<Setup onComplete={() => setIsSetupComplete(true)} />
+					<Setup
+						theme={theme}
+						onComplete={() => setIsSetupComplete(true)}
+					/>
 				)}
-				<StatusBar style="auto" />
 			</View>
 		</SafeAreaProvider>
 	);
