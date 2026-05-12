@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import * as SplashScreen from 'expo-splash-screen';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View, useColorScheme } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 // Screens
 import Setup from "./Setup";
