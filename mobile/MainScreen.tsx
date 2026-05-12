@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Text } from "react-native";
 import NavigationBar from "./NavigationBar";
+import AeraStatusBar from "./AeraStatusBar"; // Import our new Status Bar
 
 // Temporary lightweight layouts
 const DashboardPlaceholder = ({ theme }: any) => (
@@ -35,9 +36,21 @@ const MainScreen: React.FC<MainProps> = ({ theme, onLogout }) => {
 		"dashboard" | "timer" | "settings"
 	>("dashboard");
 
+	// --- TELEMETRY STATE ---
+	// This is where your ESP32 data will eventually be stored
+	const [deviceStatus, setDeviceStatus] = useState({
+		water: 0 as 0 | 25 | 50 | 75 | 100 | null,
+		door: "locked" as "locked" | "unlocked" | "inactive",
+		uvActive: false,
+		wifiLevel: 1 as 1 | 2 | 3 | 4,
+	});
+
 	return (
-		<View style={styles.container}>
-			{/* CONTENT AREA: This area changes based on the tab */}
+		<View style={[styles.container, { backgroundColor: theme.background }]}>
+			{/* 1. STATUS BAR: Fixed at the top */}
+			<AeraStatusBar theme={theme} status={deviceStatus} />
+
+			{/* 2. CONTENT AREA: Changes based on tab */}
 			<View style={styles.content}>
 				{activeTab === "dashboard" && (
 					<DashboardPlaceholder theme={theme} />
@@ -48,7 +61,7 @@ const MainScreen: React.FC<MainProps> = ({ theme, onLogout }) => {
 				)}
 			</View>
 
-			{/* NAVIGATION BAR: This stays fixed at the bottom */}
+			{/* 3. NAVIGATION BAR: Fixed at the bottom */}
 			<NavigationBar
 				theme={theme}
 				activeTab={activeTab}
@@ -63,9 +76,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	content: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
+		flex: 1, // Takes up all remaining space between status bar and nav bar
 	},
 	center: {
 		flex: 1,
