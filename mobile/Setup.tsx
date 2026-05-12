@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // <--- useEffect lives here!
 import {
   StyleSheet,
   useColorScheme,
   View,
   TouchableOpacity,
   Text,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import * as NavigationBar from "expo-navigation-bar";
 
 // Screens & Components
 import PagerIndicator from "./PagerIndicator";
@@ -27,6 +29,24 @@ const Setup = () => {
     boxGraphic: isDarkMode ? "#E7E7E7" : "#00A0E9",
     pillInactive: isDarkMode ? "#333333" : "#D9D9D9",
   };
+
+  useEffect(() => {
+    const syncNavBar = async () => {
+      if (Platform.OS === "android") {
+        try {
+          // We remove setBackgroundColorAsync entirely to stop the warning.
+          // We only focus on the button icons (ButtonStyle).
+          const buttonStyle = isDarkMode ? "light" : "dark";
+
+          await NavigationBar.setButtonStyleAsync(buttonStyle);
+        } catch (e) {
+          console.log("Nav bar icons failed to sync:", e);
+        }
+      }
+    };
+
+    syncNavBar();
+  }, [isDarkMode]);
 
   const handleBack = () => {
     if (currentStep > 0) setCurrentStep(currentStep - 1);

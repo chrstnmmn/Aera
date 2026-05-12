@@ -11,7 +11,7 @@ import HardwareIcon from "./HardwareIcon";
 interface Props {
   theme: any;
   onConnect?: () => void;
-  deviceName?: string; // Made dynamic so you can reuse this component!
+  deviceName?: string;
 }
 
 const DeviceCard: React.FC<Props> = ({
@@ -24,9 +24,17 @@ const DeviceCard: React.FC<Props> = ({
   const blueBoxBg = isDarkMode ? "#1CA7ED" : "#1497D9";
   const boxTextColor = isDarkMode ? "#E7E7E7" : "#2E2E2E";
 
+  // --- DYNAMIC SHADOW LOGIC ---
+  // On Android, we kill elevation in Dark Mode to prevent the "grey glow"
+  const androidElevation = isDarkMode ? 0 : 4;
+
   return (
     <TouchableOpacity
-      style={[styles.cardContainer, { backgroundColor: blueBoxBg }]}
+      key={isDarkMode ? "dark-card" : "light-card"}
+      style={[
+        styles.cardContainer,
+        { backgroundColor: blueBoxBg, elevation: androidElevation },
+      ]}
       activeOpacity={0.8}
       onPress={onConnect}
     >
@@ -34,7 +42,11 @@ const DeviceCard: React.FC<Props> = ({
       <View
         style={[
           styles.leftBox,
-          { backgroundColor: leftBoxBg },
+          {
+            backgroundColor: leftBoxBg,
+            elevation: androidElevation, // Keep this synced
+            shadowColor: "#000",
+          },
           isDarkMode && styles.leftBoxBorderDark,
         ]}
       >
@@ -65,16 +77,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderRadius: 20,
 
-    // Platform-specific parent shadows
+    // iOS stays the same as it handles transparency/color perfectly
     ...Platform.select({
       ios: {
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
         shadowRadius: 7,
-      },
-      android: {
-        elevation: 3,
       },
     }),
   },
@@ -89,19 +98,14 @@ const styles = StyleSheet.create({
     paddingLeft: 22,
     paddingRight: 15,
     gap: 12,
-    zIndex: 2,
+    zIndex: 2, // Keeps it visually above the blue box even without elevation
 
-    // Platform-specific overlap shadows
     ...Platform.select({
       ios: {
         shadowColor: "#000",
         shadowOffset: { width: 4, height: 0 },
         shadowOpacity: 0.15,
         shadowRadius: 4,
-      },
-      android: {
-        elevation: 3,
-        shadowColor: "#000",
       },
     }),
   },
