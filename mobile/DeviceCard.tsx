@@ -117,9 +117,8 @@ const styles = StyleSheet.create({
   },
   deviceName: {
     flex: 1,
-    fontFamily: "System",
+    fontFamily: "SFPro-Medium",
     fontSize: 20,
-    fontWeight: "700",
     letterSpacing: -0.3,
   },
   connectTextWrapper: {
@@ -129,9 +128,8 @@ const styles = StyleSheet.create({
   },
   connectBtnText: {
     color: "#E7E7E7",
-    fontFamily: "System",
+    fontFamily: "SFPro-Bold",
     fontSize: 20,
-    fontWeight: "600",
     letterSpacing: -0.3,
   },
 });

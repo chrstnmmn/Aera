@@ -12,7 +12,7 @@ import MainScreen from "./MainScreen";
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const SKIP_SETUP = true;
+const SKIP_SETUP = false;
 
 export default function App() {
 	const [isSetupComplete, setIsSetupComplete] = useState(SKIP_SETUP);
@@ -21,15 +21,12 @@ export default function App() {
 	// --- FONT LOADING ---
 	const [fontsLoaded, fontError] = useFonts({
 		// Sliced Variable Instances
-		"Aera-Expanded-30": require("./assets/fonts/SF-Pro-30-27-760.ttf"),
-		"Aera-Expanded-40": require("./assets/fonts/SF-Pro-40-28-760.ttf"),
-
 		// Static Weights
-		"SF-Black": require("./assets/fonts/SF-Pro-Black.ttf"),
-		"SF-Heavy": require("./assets/fonts/SF-Pro-Heavy.ttf"),
-		"SF-Bold": require("./assets/fonts/SF-Pro-Bold.ttf"),
-		"SF-Medium": require("./assets/fonts/SF-Pro-Medium.ttf"),
-		"SF-Regular": require("./assets/fonts/SF-Pro-Regular.ttf"),
+		"SFPro-Black": require("./assets/fonts/Black.ttf"),
+		"SFPro-Heavy": require("./assets/fonts/Heavy.ttf"),
+		"SFPro-Bold": require("./assets/fonts/Bold.ttf"),
+		"SFPro-Medium": require("./assets/fonts/Medium.ttf"),
+		"SFPro-Regular": require("./assets/fonts/Regular.ttf"),
 	});
 
 	const theme = {

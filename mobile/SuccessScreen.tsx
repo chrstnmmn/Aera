@@ -75,13 +75,13 @@ const styles = StyleSheet.create({
   },
   successText: {
     fontSize: 64,
-    fontWeight: "900",
+    fontFamily: "SFPro-Black",
     lineHeight: 68,
     letterSpacing: -2,
   },
   welcomeText: {
     fontSize: 18,
-    fontWeight: "700",
+    fontFamily: "SFPro-Medium",
   },
   proceedBtn: {
     flexDirection: "row",
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   proceedText: {
     fontSize: 18,
-    fontWeight: "700",
+    fontFamily: "SFPro-Bold",
   },
 });
 

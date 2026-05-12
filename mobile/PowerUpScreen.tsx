@@ -72,14 +72,14 @@ const styles = StyleSheet.create({
 	},
 	massiveText: {
 		fontSize: 64,
-		fontWeight: "900",
+		fontFamily: "SFPro-Black",
 		lineHeight: 70,
 		letterSpacing: -1.5,
-    marginTop: 55,
+		marginTop: 55,
 	},
 	subText: {
 		fontSize: 16,
-		fontWeight: "600",
+		fontFamily: "SFPro-Medium",
 		marginTop: -2,
 		marginLeft: 2,
 	},
@@ -95,11 +95,11 @@ const styles = StyleSheet.create({
 		gap: 6,
 		alignSelf: "flex-end",
 	},
-	getStartedText: { fontSize: 16, fontWeight: "700" },
+	getStartedText: { fontSize: 16, fontFamily: "SFPro-Bold" },
 	plugGraphicWrapper: {
 		position: "absolute",
 		bottom: -20,
-		transform: [{ translateX: -40 }, { translateY: 80 }],
+		transform: [{ translateX: -40 }, { translateY: 60 }],
 		zIndex: -1,
 	},
 });

@@ -112,13 +112,13 @@ const styles = StyleSheet.create({
   },
   massiveText: {
     fontSize: 60,
-    fontWeight: "900",
+    fontFamily: "SFPro-Black",
     lineHeight: 66,
     letterSpacing: -1.5,
   },
   subText: {
     fontSize: 16,
-    fontWeight: "500",
+    fontFamily: "SFPro-Medium",
     lineHeight: 22,
   },
   bottomControlsWrapper: {
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 16,
-    fontWeight: "700",
+    fontFamily: "SFPro-Medium",
   },
 });
 

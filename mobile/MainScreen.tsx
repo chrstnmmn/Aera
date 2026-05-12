@@ -6,21 +6,21 @@ import AeraStatusBar from "./AeraStatusBar"; // Import our new Status Bar
 // Temporary lightweight layouts
 const DashboardPlaceholder = ({ theme }: any) => (
 	<View style={styles.center}>
-		<Text style={{ color: theme.text, fontWeight: "800" }}>
+		<Text style={{ color: theme.text, fontFamily: "SFPro-Black" }}>
 			DASHBOARD SCREEN
 		</Text>
 	</View>
 );
 const TimerPlaceholder = ({ theme }: any) => (
 	<View style={styles.center}>
-		<Text style={{ color: theme.text, fontWeight: "800" }}>
+		<Text style={{ color: theme.text, fontFamily: "SFPro-Black" }}>
 			TIMER SETUP SCREEN
 		</Text>
 	</View>
 );
 const SettingsPlaceholder = ({ theme }: any) => (
 	<View style={styles.center}>
-		<Text style={{ color: theme.text, fontWeight: "800" }}>
+		<Text style={{ color: theme.text, fontFamily: "SFPro-Black" }}>
 			SETTINGS SCREEN
 		</Text>
 	</View>
