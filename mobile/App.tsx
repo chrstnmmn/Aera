@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { StyleSheet, View, useColorScheme } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useFonts } from "expo-font"; // <--- Added
 
 // Screens
 import Setup from "./Setup";
-import MainScreen from "./MainScreen"; // <--- New central hub
+import MainScreen from "./MainScreen";
 
+// Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const SKIP_SETUP = true;
@@ -15,6 +17,20 @@ const SKIP_SETUP = true;
 export default function App() {
 	const [isSetupComplete, setIsSetupComplete] = useState(SKIP_SETUP);
 	const isDarkMode = useColorScheme() === "dark";
+
+	// --- FONT LOADING ---
+	const [fontsLoaded, fontError] = useFonts({
+		// Sliced Variable Instances
+		"Aera-Expanded-30": require("./assets/fonts/SF-Pro-30-27-760.ttf"),
+		"Aera-Expanded-40": require("./assets/fonts/SF-Pro-40-28-760.ttf"),
+
+		// Static Weights
+		"SF-Black": require("./assets/fonts/SF-Pro-Black.ttf"),
+		"SF-Heavy": require("./assets/fonts/SF-Pro-Heavy.ttf"),
+		"SF-Bold": require("./assets/fonts/SF-Pro-Bold.ttf"),
+		"SF-Medium": require("./assets/fonts/SF-Pro-Medium.ttf"),
+		"SF-Regular": require("./assets/fonts/SF-Pro-Regular.ttf"),
+	});
 
 	const theme = {
 		background: isDarkMode ? "#060606" : "#FFFFFF",
@@ -24,18 +40,18 @@ export default function App() {
 		pillInactive: isDarkMode ? "#333333" : "#D9D9D9",
 	};
 
-	useEffect(() => {
-		async function prepare() {
-			try {
-				await new Promise((resolve) => setTimeout(resolve, 2000));
-			} catch (e) {
-				console.warn(e);
-			} finally {
-				await SplashScreen.hideAsync();
-			}
+	// --- SPLASH SCREEN LOGIC ---
+	const onLayoutRootView = useCallback(async () => {
+		if (fontsLoaded || fontError) {
+			// Hide the splash screen once fonts are ready
+			await SplashScreen.hideAsync();
 		}
-		prepare();
-	}, []);
+	}, [fontsLoaded, fontError]);
+
+	// Guard clause: Don't render UI until fonts are ready
+	if (!fontsLoaded && !fontError) {
+		return null;
+	}
 
 	return (
 		<SafeAreaProvider>
@@ -44,6 +60,7 @@ export default function App() {
 					styles.container,
 					{ backgroundColor: theme.background },
 				]}
+				onLayout={onLayoutRootView} // <--- Triggered when View mounts
 			>
 				{isSetupComplete ? (
 					<MainScreen
