@@ -7,6 +7,13 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+
+    "androidNavigationBar": {
+      "visible": "leanback",
+      "barStyle": "light-content",
+      "backgroundColor": "#060606"
+    },
+
     "splash": {
       "image": "./assets/logo-light.png",
       "resizeMode": "contain",

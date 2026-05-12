@@ -2,38 +2,52 @@ import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { SafeAreaProvider } from 'react-native-safe-area-context';v
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-// Import our organized Setup component
-import Setup from './Setup';
+// Screens
+import Setup from "./Setup";
+import Dashboard from "./Dashboard";
 
-// Prevent the splash screen from auto-hiding immediately
-SplashScreen.preventAutoHideAsync().catch(() => {
-  /* Handle potential error in some environments */
-});
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// --- DEV TOGGLE: SET TO TRUE TO BYPASS SETUP ---
+const SKIP_SETUP = true;
 
 export default function App() {
+  // Initialize state based on our dev toggle
+  const [isSetupComplete, setIsSetupComplete] = useState(SKIP_SETUP);
+  const isDarkMode = useColorScheme() === "dark";
+
+  const theme = {
+    background: isDarkMode ? "#060606" : "#FFFFFF",
+    text: isDarkMode ? "#FFFFFF" : "#2E2E2E",
+    primaryBlue: "#00A0E9",
+    boxGraphic: isDarkMode ? "#E7E7E7" : "#00A0E9",
+    pillInactive: isDarkMode ? "#333333" : "#D9D9D9",
+  };
+
   useEffect(() => {
     async function prepare() {
       try {
-        // Simulate a 3-second load for the Aera brand experience
-        // This provides a professional transition to the logo screen
-        await new Promise(resolve => setTimeout(resolve, 3000)); 
+        // Keeping the splash for brand feel, but it can be shorter if you want
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       } catch (e) {
-        console.warn('Initialization error:', e);
+        console.warn(e);
       } finally {
-        // Once preparation is done, hide the native splash screen
         await SplashScreen.hideAsync();
       }
     }
-
     prepare();
   }, []);
 
   return (
     <SafeAreaProvider>
-      <View style={styles.container}>
-        <Setup />
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        {isSetupComplete ? (
+          <Dashboard theme={theme} onLogout={() => setIsSetupComplete(false)} />
+        ) : (
+          <Setup onComplete={() => setIsSetupComplete(true)} />
+        )}
         <StatusBar style="auto" />
       </View>
     </SafeAreaProvider>
@@ -43,6 +57,5 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // Background color is managed by Setup.tsx to prevent flickering
   },
 });

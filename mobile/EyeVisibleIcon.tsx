@@ -1,0 +1,31 @@
+import React from "react";
+import Svg, { Path } from "react-native-svg";
+
+interface Props {
+  width?: number | string;
+  height?: number | string;
+  fill?: string;
+}
+
+const EyeVisibleIcon: React.FC<Props> = ({
+  width = 23,
+  height = 17,
+  fill = "#2E2E2E",
+}) => {
+  return (
+    <Svg width={width} height={height} viewBox="0 0 23 17" fill="none">
+      <Path
+        d="M11.1146 10.483C12.4012 10.483 13.4442 9.44006 13.4442 8.15348C13.4442 6.86689 12.4012 5.82391 11.1146 5.82391C9.82806 5.82391 8.78508 6.86689 8.78508 8.15348C8.78508 9.44006 9.82806 10.483 11.1146 10.483Z"
+        fill={fill}
+      />
+      <Path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M0 8.15352C1.48423 3.42785 5.8991 0 11.1146 0C16.3301 0 20.7449 3.42781 22.2292 8.15344C20.7449 12.8791 16.3301 16.307 11.1146 16.307C5.89911 16.307 1.48425 12.8791 0 8.15352ZM15.7738 8.15348C15.7738 10.7266 13.6878 12.8126 11.1146 12.8126C8.54147 12.8126 6.45551 10.7266 6.45551 8.15348C6.45551 5.58031 8.54147 3.49435 11.1146 3.49435C13.6878 3.49435 15.7738 5.58031 15.7738 8.15348Z"
+        fill={fill}
+      />
+    </Svg>
+  );
+};
+
+export default EyeVisibleIcon;
