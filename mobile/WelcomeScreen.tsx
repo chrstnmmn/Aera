@@ -68,7 +68,8 @@ const styles = StyleSheet.create({
 	},
 	massiveText: {
 		// --- FONT TWEAKS ---
-		fontFamily: "SFPro-Black", // Using your registered key
+		fontFamily: "aera_black", // Using your registered key
+		fontWeight: "normal",
 		fontSize: 65,
 		lineHeight: 70,
 		letterSpacing: -1.5,
@@ -87,7 +88,8 @@ const styles = StyleSheet.create({
 	},
 	getStartedText: {
 		// --- FONT TWEAKS ---
-		fontFamily: "SFPro-Bold", // Using your registered key
+		fontFamily: "aera_bold", // Using your registered key
+		fontWeight: "normal",
 		fontSize: 16,
 	},
 	welcomeGraphicWrapper: {

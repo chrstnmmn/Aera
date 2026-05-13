@@ -197,20 +197,20 @@ const styles = StyleSheet.create({
   },
   wifiGraphicWrapper: {
     position: "absolute",
-    top: height * 0.55, 
+    top: height * .65, 
     left: -width * 0.3,
     transform: [{ rotate: "7deg" }],
     zIndex: -1,
   },
   headerSection: { marginTop: height * 0.02, alignItems: "flex-end" },
   titleText: {
-    fontFamily: "SFPro-Black",
+    fontFamily: "aera_black",
     fontSize: 40,
     textAlign: "right",
   },
   subtitleWrapper: { width: "100%", alignItems: "flex-end", marginTop: -16 },
   subtitleText: {
-    fontFamily: "SFPro-Medium",
+    fontFamily: "aera_medium",
     fontSize: 16,
     textAlign: "right",
     width: "75%",
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   formSection: { flex: 1, marginTop: height * 0.05 },
   inputGroup: { marginBottom: 10 },
   label: {
-    fontFamily: "SFPro-Heavy",
+    fontFamily: "aera_heavy",
     fontSize: 16,
     marginBottom: 8,
     paddingLeft: 4,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderStyle: "solid",
   },
-  input: { flex: 1, fontFamily: "SFPro-Regular", fontSize: 18, height: "100%" },
+  input: { flex: 1, fontFamily: "aera_regular", fontSize: 18, height: "100%" },
   eyeIconWrapper: { padding: 10, marginLeft: 10 },
   connectBtn: {
     width: "100%",
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
       android: { elevation: 4 },
     }),
   },
-  connectBtnText: { fontFamily: "SFPro-Heavy", fontSize: 20, },
+  connectBtnText: { fontFamily: "aera_heavy", fontSize: 20, },
 });
 
 export default WifiSetupScreen;

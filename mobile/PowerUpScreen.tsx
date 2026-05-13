@@ -72,14 +72,14 @@ const styles = StyleSheet.create({
 	},
 	massiveText: {
 		fontSize: 64,
-		fontFamily: "SFPro-Black",
+		fontFamily: "aera_black",
 		lineHeight: 70,
 		letterSpacing: -1.5,
 		marginTop: 55,
 	},
 	subText: {
 		fontSize: 16,
-		fontFamily: "SFPro-Medium",
+		fontFamily: "aera_medium",
 		marginTop: -2,
 		marginLeft: 2,
 	},
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
 		gap: 6,
 		alignSelf: "flex-end",
 	},
-	getStartedText: { fontSize: 16, fontFamily: "SFPro-Bold" },
+	getStartedText: { fontSize: 16, fontFamily: "aera_bold" },
 	plugGraphicWrapper: {
 		position: "absolute",
 		bottom: -20,

@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     left: 0,
     top: 0,
     bottom: 0,
-    width: "71%",
+    width: "70%",
     borderTopLeftRadius: 20,
     borderBottomLeftRadius: 20,
     borderTopRightRadius: 10,
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   deviceName: {
     flex: 1,
-    fontFamily: "SFPro-Medium",
+    fontFamily: "aera_medium",
     fontSize: 20,
     letterSpacing: -0.3,
   },
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   },
   connectBtnText: {
     color: "#E7E7E7",
-    fontFamily: "SFPro-Bold",
+    fontFamily: "aera_bold",
     fontSize: 20,
     letterSpacing: -0.3,
   },

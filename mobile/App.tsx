@@ -20,13 +20,12 @@ export default function App() {
 
 	// --- 1. FONT LOADING (Static Only) ---
 	const [fontsLoaded, fontError] = useFonts({
-		"SFPro-Black": require("./assets/fonts/Black.ttf"),
-		"SFPro-Heavy": require("./assets/fonts/Heavy.ttf"),
-		"SFPro-Bold": require("./assets/fonts/Bold.ttf"),
-		"SFPro-Medium": require("./assets/fonts/Medium.ttf"),
-		"SFPro-Regular": require("./assets/fonts/Regular.ttf"),
-	});
-
+  "aera_black": require("./assets/fonts/aera_black.ttf"),
+  "aera_heavy": require("./assets/fonts/aera_heavy.ttf"),
+  "aera_bold": require("./assets/fonts/aera_bold.ttf"),
+  "aera_medium": require("./assets/fonts/aera_medium.ttf"),
+  "aera_regular": require("./assets/fonts/aera_regular.ttf"),
+});
 	// --- 2. THEME CONFIGURATION ---
 	const barSurfaceColor = isDarkMode ? "#141414" : "#E7E7E7";
 

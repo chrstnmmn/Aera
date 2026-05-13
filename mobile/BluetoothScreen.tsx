@@ -112,13 +112,13 @@ const styles = StyleSheet.create({
   },
   massiveText: {
     fontSize: 60,
-    fontFamily: "SFPro-Black",
+    fontFamily: "aera_black",
     lineHeight: 66,
     letterSpacing: -1.5,
   },
   subText: {
     fontSize: 16,
-    fontFamily: "SFPro-Medium",
+    fontFamily: "aera_medium",
     lineHeight: 22,
   },
   bottomControlsWrapper: {
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 16,
-    fontFamily: "SFPro-Medium",
+    fontFamily: "aera_medium",
   },
 });
 

@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	placeholderText: {
-		fontFamily: "SFPro-Black",
+		fontFamily: "aera_black",
 		fontSize: 18,
 		letterSpacing: 1,
 	},

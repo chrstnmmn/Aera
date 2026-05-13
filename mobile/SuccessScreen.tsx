@@ -75,13 +75,13 @@ const styles = StyleSheet.create({
   },
   successText: {
     fontSize: 64,
-    fontFamily: "SFPro-Black",
+    fontFamily: "aera_black",
     lineHeight: 68,
     letterSpacing: -2,
   },
   welcomeText: {
     fontSize: 18,
-    fontFamily: "SFPro-Medium",
+    fontFamily: "aera_medium",
   },
   proceedBtn: {
     flexDirection: "row",
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   proceedText: {
     fontSize: 18,
-    fontFamily: "SFPro-Bold",
+    fontFamily: "aera_bold",
   },
 });
 
