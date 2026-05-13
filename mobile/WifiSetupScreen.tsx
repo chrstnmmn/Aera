@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
   },
   wifiGraphicWrapper: {
     position: "absolute",
-    top: height * 0.7, 
+    top: height * 0.55, 
     left: -width * 0.3,
     transform: [{ rotate: "7deg" }],
     zIndex: -1,
