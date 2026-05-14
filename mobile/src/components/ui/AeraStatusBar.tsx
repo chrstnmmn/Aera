@@ -3,11 +3,11 @@ import { View, StyleSheet, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Import the icon library components we built
-import AeraLogo from "./AeraLogo";
-import WaterLevelIcon from "./WaterLevelIcon";
-import DoorIcon from "./DoorIcon";
-import UVIcon from "./UVIcon";
-import WifiIcon from "./WifiIcon";
+import AeraLogo from "../icons/AeraLogo";
+import WaterLevelIcon from "../icons/WaterLevelIcon";
+import DoorIcon from "../icons/DoorIcon";
+import UVIcon from "../icons/UVIcon";
+import WifiIcon from "../icons/WifiIcon";
 
 interface StatusBarProps {
 	theme: any;

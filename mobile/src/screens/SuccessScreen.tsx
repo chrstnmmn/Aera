@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from "react-native";
-import SuccessBoxIcon from "./SuccessBoxIcon";
-import ProceedArrow from "./ProceedArrow";
+import SuccessBoxIcon from "../components/icons/SuccessBoxIcon";
+import ProceedArrow from "../components/icons/ProceedArrow";
 
 const { width, height } = Dimensions.get("window");
 

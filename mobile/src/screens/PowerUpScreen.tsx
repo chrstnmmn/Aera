@@ -8,8 +8,8 @@ import {
 } from "react-native";
 
 //Assets
-import RightArrowIcon from "./assets/right-arrow-icon.svg";
-import PowerPlugIcon from "./PowerPlugIcon";
+import ProceedArrow from "../components/icons/ProceedArrow";
+import PowerPlugIcon from "../components/icons/PowerPlugIcon";
 
 const { width, height } = Dimensions.get("window");
 
@@ -19,6 +19,10 @@ interface Props {
 }
 
 const PowerUpScreen: React.FC<Props> = ({ theme, onNext }) => {
+
+	const isDarkMode = theme.background === "#060606";
+  const proceedColor = isDarkMode ? "#1CA7ED" : "#1497D9";
+
 	return (
 		<View style={styles.content}>
 			<View style={styles.textWrapperPowerUp}>
@@ -53,11 +57,7 @@ const PowerUpScreen: React.FC<Props> = ({ theme, onNext }) => {
 					>
 						Next
 					</Text>
-					<RightArrowIcon
-						width={16}
-						height={16}
-						fill={theme.primaryBlue}
-					/>
+					<ProceedArrow fill={proceedColor} />
 				</TouchableOpacity>
 			</View>
 		</View>

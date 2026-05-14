@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
-import HardwareIcon from "./HardwareIcon";
+import HardwareIcon from "../icons/HardwareIcon";
 
 interface Props {
   theme: any;
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   connectBtnText: {
     color: "#E7E7E7",
     fontFamily: "aera_bold",
-    fontSize: 20,
+    fontSize: 16,
     letterSpacing: -0.3,
   },
 });

@@ -7,12 +7,12 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 
 // Import your two environments
-import MainApp from "./MainApp";
-import Preview from "./Preview";
+import MainApp from "./src/navigation/MainApp";
+import Preview from "./src/navigation/Preview";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const USE_PREVIEW_MODE = true;
+const USE_PREVIEW_MODE = false;
 
 export default function App() {
 	const isDarkMode = useColorScheme() === "dark";

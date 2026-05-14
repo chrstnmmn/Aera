@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Setup from "./Setup";
-import MainScreen from "./MainScreen";
+import MainScreen from "../screens/MainScreen";
 
 const SKIP_SETUP = false;
 

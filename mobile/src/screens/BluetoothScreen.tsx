@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Dimensions, Animated } from "react-native";
 
 // Assets & Components
-import WizardBluetoothIcon from "./WizardBluetoothIcon";
-import RadarIcon from "./RadarIcon";
-import DeviceCard from "./DeviceCard"; // <-- Import your new component!
+import WizardBluetoothIcon from "../components/icons/WizardBluetoothIcon";
+import RadarIcon from "../components/icons/RadarIcon";
+import DeviceCard from "../components/ui/DeviceCard";
 
 const { width, height } = Dimensions.get("window");
 

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Text } from "react-native";
-import NavigationBar from "./NavigationBar";
-import AeraStatusBar from "./AeraStatusBar";
+import NavigationBar from "../components/ui/NavigationBar";
+import AeraStatusBar from "../components/ui/AeraStatusBar";
 
 const DashboardPlaceholder = ({ theme }: any) => (
 	<View style={styles.center}>

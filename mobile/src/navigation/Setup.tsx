@@ -9,13 +9,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 // Screens & Components
-import PagerIndicator from "./PagerIndicator";
-import WelcomeScreen from "./WelcomeScreen";
-import PowerUpScreen from "./PowerUpScreen";
-import BluetoothScreen from "./BluetoothScreen";
-import WifiSetupScreen from "./WifiSetupScreen";
-import SuccessScreen from "./SuccessScreen";
-import GoBackIcon from "./GoBackIcon";
+import PagerIndicator from "../components/ui/PagerIndicator";
+import WelcomeScreen from "../screens/WelcomeScreen";
+import PowerUpScreen from "../screens/PowerUpScreen";
+import BluetoothScreen from "../screens/BluetoothScreen";
+import WifiSetupScreen from "../screens/WifiSetupScreen";
+import SuccessScreen from "../screens/SuccessScreen";
+import GoBackIcon from "../components/icons/GoBackIcon";
 
 interface SetupProps {
 	theme: any;

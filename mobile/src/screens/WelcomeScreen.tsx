@@ -6,9 +6,8 @@ import {
 	StyleSheet,
 	Dimensions,
 } from "react-native";
-import WizardSuccessBox from "./WizardSuccessBox";
-import RightArrowIcon from "./assets/right-arrow-icon.svg";
-
+import WizardSuccessBox from "../components/icons/WizardSuccessBox";
+import ProceedArrow from "../components/icons/ProceedArrow";
 
 const { width, height } = Dimensions.get("window");
 
@@ -18,6 +17,9 @@ interface Props {
 }
 
 const WelcomeScreen: React.FC<Props> = ({ theme, onNext }) => {
+	const isDarkMode = theme.background === "#060606";
+  const proceedColor = isDarkMode ? "#1CA7ED" : "#1497D9";
+
 	return (
 		<View style={styles.content}>
 			<View style={styles.textWrapperWelcome}>
@@ -40,11 +42,7 @@ const WelcomeScreen: React.FC<Props> = ({ theme, onNext }) => {
 					>
 						Lets get started
 					</Text>
-					<RightArrowIcon
-						width={18}
-						height={18}
-						fill={theme.primaryBlue}
-					/>
+					<ProceedArrow fill={proceedColor} />
 				</TouchableOpacity>
 			</View>
 

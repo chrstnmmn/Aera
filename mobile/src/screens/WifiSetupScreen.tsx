@@ -12,9 +12,9 @@ import {
 } from "react-native";
 
 // Assets
-import WizardWifiIcon from "./WizardWifiIcon";
-import EyeVisibleIcon from "./EyeVisibleIcon";
-import EyeHiddenIcon from "./EyeHiddenIcon";
+import WizardWifiIcon from "../components/icons/WizardWifiIcon";
+import EyeVisibleIcon from "../components/icons/EyeVisibleIcon";
+import EyeHiddenIcon from "../components/icons/EyeHiddenIcon";
 
 const { width, height } = Dimensions.get("window");
 
