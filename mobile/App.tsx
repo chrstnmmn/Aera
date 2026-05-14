@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useCallback } from "react";
 import { StyleSheet, View, useColorScheme, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as NavigationBar from "expo-navigation-bar";
@@ -6,29 +6,28 @@ import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 
-// Screens
-import Setup from "./Setup";
-import MainScreen from "./MainScreen";
+// Import your two environments
+import MainApp from "./MainApp";
+import Preview from "./Preview";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const SKIP_SETUP = false;
+const USE_PREVIEW_MODE = true;
 
 export default function App() {
-	const [isSetupComplete, setIsSetupComplete] = useState(SKIP_SETUP);
 	const isDarkMode = useColorScheme() === "dark";
 
-	// --- 1. FONT LOADING (Static Only) ---
+	// --- 1. FONT LOADING ---
 	const [fontsLoaded, fontError] = useFonts({
-  "aera_black": require("./assets/fonts/aera_black.ttf"),
-  "aera_heavy": require("./assets/fonts/aera_heavy.ttf"),
-  "aera_bold": require("./assets/fonts/aera_bold.ttf"),
-  "aera_medium": require("./assets/fonts/aera_medium.ttf"),
-  "aera_regular": require("./assets/fonts/aera_regular.ttf"),
-});
+		aera_black: require("./assets/fonts/aera_black.ttf"),
+		aera_heavy: require("./assets/fonts/aera_heavy.ttf"),
+		aera_bold: require("./assets/fonts/aera_bold.ttf"),
+		aera_medium: require("./assets/fonts/aera_medium.ttf"),
+		aera_regular: require("./assets/fonts/aera_regular.ttf"),
+	});
+
 	// --- 2. THEME CONFIGURATION ---
 	const barSurfaceColor = isDarkMode ? "#141414" : "#E7E7E7";
-
 	const theme = {
 		background: isDarkMode ? "#060606" : "#FFFFFF",
 		text: isDarkMode ? "#FFFFFF" : "#2E2E2E",
@@ -38,30 +37,21 @@ export default function App() {
 		barSurface: barSurfaceColor,
 	};
 
-	// --- 3. ANDROID SYSTEM UI SYNC (With Bridge Delay) ---
+	// --- 3. ANDROID SYSTEM UI SYNC ---
 	useEffect(() => {
 		let timeoutId: ReturnType<typeof setTimeout>;
-
 		async function syncSystemBars() {
 			if (Platform.OS === "android") {
 				try {
-					// 1. Force the OS bar to be invisible glass
 					await NavigationBar.setBackgroundColorAsync("#00000000");
-
-					// 2. Float it over the app so it never steals physical screen space
 					await NavigationBar.setPositionAsync("absolute");
-
-					// 3. Hide the soft keys entirely
 					await NavigationBar.setVisibilityAsync("hidden");
-
-					// 4. Allow temporary swipe-up access (standard for immersive apps)
 					await NavigationBar.setBehaviorAsync("overlay-swipe");
 				} catch (error) {
 					console.warn("Failed to set navigation bar state", error);
 				}
 			}
 		}
-
 		timeoutId = setTimeout(syncSystemBars, 150);
 		return () => clearTimeout(timeoutId);
 	}, []);
@@ -88,23 +78,15 @@ export default function App() {
 			>
 				<StatusBar
 					style={isDarkMode ? "light" : "dark"}
-					// If in MainScreen, use the bar surface color. If in Setup, use the deep background color.
-					backgroundColor={
-						isSetupComplete ? theme.barSurface : theme.background
-					}
+					backgroundColor={theme.background}
 					translucent={false}
 				/>
 
-				{isSetupComplete ? (
-					<MainScreen
-						theme={theme}
-						onLogout={() => setIsSetupComplete(false)}
-					/>
+				{/* --- ENVIRONMENT ROUTER --- */}
+				{USE_PREVIEW_MODE ? (
+					<Preview theme={theme} />
 				) : (
-					<Setup
-						theme={theme}
-						onComplete={() => setIsSetupComplete(true)}
-					/>
+					<MainApp theme={theme} />
 				)}
 			</View>
 		</SafeAreaProvider>
