@@ -1,20 +1,27 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
-import SystemMonitor from "../components/ui/SystemMonitor";
+import { View, StyleSheet, ScrollView } from "react-native";
+import TimerCard from "../components/ui/TimerCard";
 
 export default function Preview({ theme }: { theme: any }) {
-	return (
-		<View style={[styles.content, { backgroundColor: theme.background }]}>
-			<SystemMonitor theme={theme} />
-		</View>
-	);
+  return (
+    <ScrollView 
+      contentContainerStyle={[
+        styles.content, 
+        { backgroundColor: theme.background }
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* The fully assembled Timer Card */}
+      <TimerCard theme={theme} />
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
-	content: {
-		flex: 1,
-		justifyContent: "center",
-		alignItems: "center",
-		paddingHorizontal: 20,
-	},
+  content: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+  },
 });

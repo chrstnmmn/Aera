@@ -27,6 +27,8 @@ export default function App() {
 		aera_semibold: require("./assets/fonts/aera_semibold.ttf"),
 		aera_small: require("./assets/fonts/aera_small.ttf"),
 		aera_tiny: require("./assets/fonts/aera_tiny.ttf"),
+		aera_tallmedium: require("./assets/fonts/aera_tallmedium.ttf"),
+		aera_tallsmall: require("./assets/fonts/aera_tallsmall.ttf"),
 	});
 
 	// --- 2. THEME CONFIGURATION ---

@@ -3,7 +3,8 @@ import { View, StyleSheet, ScrollView } from "react-native";
 import NavigationBar from "../components/ui/NavigationBar";
 import AeraStatusBar from "../components/ui/AeraStatusBar";
 import AeraTitlebar from "../components/ui/AeraTitlebar";
-import SystemMonitor from "../components/ui/SystemMonitor"; // Import your new component
+import SystemMonitor from "../components/ui/SystemMonitor";
+import TimerCard from "../components/ui/TimerCard"; // <-- Imported TimerCard
 
 interface MainProps {
 	theme: any;
@@ -52,7 +53,8 @@ const MainScreen: React.FC<MainProps> = ({ theme, onLogout }) => {
 							{/* THE SYSTEM MONITOR INTEGRATION */}
 							<SystemMonitor theme={theme} />
 
-							{/* You can add more dashboard cards here later */}
+							{/* THE TIMER CARD INTEGRATION */}
+							<TimerCard theme={theme} />
 						</View>
 					)}
 
@@ -92,13 +94,14 @@ const styles = StyleSheet.create({
 	},
 	scrollContent: {
 		// Horizontal padding provides space for the card shadows
-		paddingHorizontal: 20,
-		paddingTop: 15,
-		paddingBottom: 40,
+		paddingHorizontal: 10,
+		paddingTop: 10,
+		paddingBottom: 20,
 	},
 	page: {
 		width: "100%",
 		alignItems: "center",
+		gap: 10, // <-- Creates the uniform spacing between your stacked dashboard cards
 	},
 });
 
