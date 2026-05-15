@@ -12,7 +12,7 @@ import Preview from "./src/navigation/Preview";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const USE_PREVIEW_MODE = false;
+const USE_PREVIEW_MODE = true;
 
 export default function App() {
 	const isDarkMode = useColorScheme() === "dark";
@@ -24,6 +24,9 @@ export default function App() {
 		aera_bold: require("./assets/fonts/aera_bold.ttf"),
 		aera_medium: require("./assets/fonts/aera_medium.ttf"),
 		aera_regular: require("./assets/fonts/aera_regular.ttf"),
+		aera_semibold: require("./assets/fonts/aera_semibold.ttf"),
+		aera_small: require("./assets/fonts/aera_small.ttf"),
+		aera_tiny: require("./assets/fonts/aera_tiny.ttf"),
 	});
 
 	// --- 2. THEME CONFIGURATION ---
