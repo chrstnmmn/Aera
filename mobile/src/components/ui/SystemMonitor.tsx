@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontFamily: "aera_semibold",
-    fontSize: 13,
+    fontSize: 11,
   },
   mainValue: {
     fontFamily: "aera_small",
