@@ -12,7 +12,7 @@ import Preview from "./src/navigation/Preview";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const USE_PREVIEW_MODE = true;
+const USE_PREVIEW_MODE = false;
 
 export default function App() {
 	const isDarkMode = useColorScheme() === "dark";

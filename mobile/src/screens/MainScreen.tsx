@@ -1,22 +1,20 @@
 import React, { useState } from "react";
-import { View, StyleSheet, Text, ScrollView } from "react-native";
+import { View, StyleSheet, ScrollView } from "react-native";
 import NavigationBar from "../components/ui/NavigationBar";
 import AeraStatusBar from "../components/ui/AeraStatusBar";
 import AeraTitlebar from "../components/ui/AeraTitlebar";
+import SystemMonitor from "../components/ui/SystemMonitor"; // Import your new component
 
-// 1. THE MISSING PIECE: Define the props interface
 interface MainProps {
 	theme: any;
 	onLogout: () => void;
 }
 
 const MainScreen: React.FC<MainProps> = ({ theme, onLogout }) => {
-	// Navigation State
 	const [activeTab, setActiveTab] = useState<
 		"dashboard" | "timer" | "settings"
 	>("dashboard");
 
-	// Hardware/Telemetry State
 	const [deviceStatus] = useState({
 		water: 75 as 0 | 25 | 50 | 75 | 100 | null,
 		door: "locked" as "locked" | "unlocked" | "inactive",
@@ -25,7 +23,6 @@ const MainScreen: React.FC<MainProps> = ({ theme, onLogout }) => {
 		connectionState: "connected" as "connecting" | "connected" | "offline",
 	});
 
-	// Helper to map tab names to Titlebar modes
 	const getTitlebarMode = () => {
 		if (activeTab === "timer") return "setup";
 		return activeTab;
@@ -33,7 +30,7 @@ const MainScreen: React.FC<MainProps> = ({ theme, onLogout }) => {
 
 	return (
 		<View style={[styles.container, { backgroundColor: theme.background }]}>
-			{/* HEADER SECTION: Stays pinned at the top */}
+			{/* HEADER SECTION */}
 			<View style={styles.headerContainer}>
 				<AeraStatusBar theme={theme} status={deviceStatus} />
 				<AeraTitlebar
@@ -44,7 +41,7 @@ const MainScreen: React.FC<MainProps> = ({ theme, onLogout }) => {
 				/>
 			</View>
 
-			{/* CONTENT AREA: This is the only part that scrolls */}
+			{/* CONTENT AREA */}
 			<View style={styles.scrollWrapper}>
 				<ScrollView
 					showsVerticalScrollIndicator={false}
@@ -52,71 +49,28 @@ const MainScreen: React.FC<MainProps> = ({ theme, onLogout }) => {
 				>
 					{activeTab === "dashboard" && (
 						<View style={styles.page}>
-							<Text
-								style={[
-									styles.placeholderText,
-									{ color: theme.text },
-								]}
-							>
-								DASHBOARD SCREEN
-							</Text>
-							{/* These cards help you see the scroll/shadow effect */}
-							<View
-								style={[
-									styles.card,
-									{ backgroundColor: theme.barSurface },
-								]}
-							/>
-							<View
-								style={[
-									styles.card,
-									{ backgroundColor: theme.barSurface },
-								]}
-							/>
+							{/* THE SYSTEM MONITOR INTEGRATION */}
+							<SystemMonitor theme={theme} />
+
+							{/* You can add more dashboard cards here later */}
 						</View>
 					)}
 
 					{activeTab === "timer" && (
 						<View style={styles.page}>
-							<Text
-								style={[
-									styles.placeholderText,
-									{ color: theme.text },
-								]}
-							>
-								TIMER SETUP SCREEN
-							</Text>
-							<View
-								style={[
-									styles.card,
-									{ backgroundColor: theme.barSurface },
-								]}
-							/>
+							{/* Timer content goes here */}
 						</View>
 					)}
 
 					{activeTab === "settings" && (
 						<View style={styles.page}>
-							<Text
-								style={[
-									styles.placeholderText,
-									{ color: theme.text },
-								]}
-							>
-								SETTINGS SCREEN
-							</Text>
-							<View
-								style={[
-									styles.card,
-									{ backgroundColor: theme.barSurface },
-								]}
-							/>
+							{/* Settings content goes here */}
 						</View>
 					)}
 				</ScrollView>
 			</View>
 
-			{/* BOTTOM NAVIGATION: Stays pinned at the bottom */}
+			{/* BOTTOM NAVIGATION */}
 			<NavigationBar
 				theme={theme}
 				activeTab={activeTab}
@@ -131,32 +85,20 @@ const styles = StyleSheet.create({
 		flex: 1,
 	},
 	headerContainer: {
-		// Stays out of the ScrollView so it's "Fixed"
 		zIndex: 10,
 	},
 	scrollWrapper: {
-		flex: 1, // Layout knows to give this the remaining space
+		flex: 1,
 	},
 	scrollContent: {
+		// Horizontal padding provides space for the card shadows
 		paddingHorizontal: 20,
-		paddingTop: 20,
+		paddingTop: 15,
 		paddingBottom: 40,
 	},
 	page: {
-		alignItems: "center",
-	},
-	placeholderText: {
-		fontFamily: "aera_black",
-		fontSize: 18,
-		letterSpacing: 1,
-		marginBottom: 20,
-	},
-	card: {
 		width: "100%",
-		height: 300,
-		borderRadius: 20,
-		marginBottom: 20,
-		opacity: 0.3,
+		alignItems: "center",
 	},
 });
 

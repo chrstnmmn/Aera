@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Setup from "./Setup";
 import MainScreen from "../screens/MainScreen";
 
-const SKIP_SETUP = false;
+const SKIP_SETUP = true;
 
 interface Props {
 	theme: any;
