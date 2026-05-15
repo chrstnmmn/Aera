@@ -91,7 +91,8 @@ const SystemMonitor: React.FC<Props> = ({ theme }) => {
 const styles = StyleSheet.create({
   base: {
     width: "100%",
-    padding: 20,
+    paddingInline: 20,
+    paddingBlock: 10,
     borderRadius: 20,
     elevation: 8,
     shadowColor: "#000",
@@ -107,13 +108,13 @@ const styles = StyleSheet.create({
   },
   cell: {
     width: "48%",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    height: 20, // Lock header height for better alignment
+    gap: 4,
+    height: 18, // Lock header height for better alignment
   },
   headerText: {
     fontFamily: "aera_semibold",
