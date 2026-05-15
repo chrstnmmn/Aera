@@ -2,6 +2,13 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
 import AeraIcon from "../components/icons/AeraIcon";
+import WifiIconTitleBar from "../components/icons/WifiIconTitleBar";
+import CloudConnectedIconTitleBar from "../components/icons/CloudConnectedIconTitleBar";
+import CloudDisconnectedIconTitleBar from "../components/icons/CloudDisconnectedIconTitleBar";
+import SetupTimerIconTitleBar from "../components/icons/SetupTimerIconTitleBar";
+import MyPresetMenuIcon from "../components/icons/MyPresetMenuIcon";
+import SettingsIconTitlebar from "../components/icons/SettingsIconTitlebar";
+import AeraTitlebar from "../components/ui/AeraTitlebar";
 
 interface Props {
 	theme: any;
@@ -10,7 +17,7 @@ interface Props {
 export default function Preview({ theme }: Props) {
 	return (
 		<View style={styles.content}>
-			{<AeraIcon color={theme.text} size={21} />}
+			<AeraTitlebar mode="dashboard" theme={theme} status="connected" />
 		</View>
 	);
 }
