@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     height: 18, // Lock header height for better alignment
   },
   headerText: {
-    fontFamily: "aera_semibold",
+    fontFamily: "aera_heavy",
     fontSize: 11,
   },
   mainValue: {
