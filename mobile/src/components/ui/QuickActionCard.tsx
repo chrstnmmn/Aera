@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
 	},
 	subtitleText: {
 		fontFamily: "aera_medium",
-		fontSize: 14,
+		fontSize: 12,
 		lineHeight: 21,
 		includeFontPadding: false,
 	},
