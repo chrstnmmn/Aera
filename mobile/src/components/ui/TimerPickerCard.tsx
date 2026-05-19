@@ -1,9 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, forwardRef, useImperativeHandle } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 interface Props {
 	theme: any;
+}
+
+export interface TimerPickerRef {
+  getValues: () => { leftVal: string; rightVal: string; isMinSec: boolean } | null;
+  reset: () => void;
 }
 
 const LeftArrow = ({ fill }: { fill: string }) => (
@@ -24,7 +29,7 @@ const RightArrow = ({ fill }: { fill: string }) => (
 	</Svg>
 );
 
-const TimerPickerCard: React.FC<Props> = ({ theme }) => {
+const TimerPickerCard = forwardRef<TimerPickerRef, Props>(({ theme }, ref) => {
 	const isDarkMode = theme?.background === "#060606";
 
 	const [leftVal, setLeftVal] = useState("");
@@ -34,6 +39,21 @@ const TimerPickerCard: React.FC<Props> = ({ theme }) => {
 	const [focusedField, setFocusedField] = useState<"left" | "right" | null>(
 		null,
 	);
+
+	useImperativeHandle(ref, () => ({
+    getValues: () => {
+      return {
+        leftVal: leftVal || "00",
+        rightVal: rightVal || "00",
+        isMinSec,
+      };
+    },
+    reset: () => {
+      setLeftVal("");
+      setRightVal("");
+      setIsMinSec(true);
+    },
+  }), [leftVal, rightVal, isMinSec]);
 
 	const baseBg = isDarkMode ? "#141414" : "#E7E7E7";
 	const focalBg = isDarkMode ? "#E7E7E7" : "#2E2E2E";
@@ -182,7 +202,6 @@ const TimerPickerCard: React.FC<Props> = ({ theme }) => {
 		}
 	};
 
-	// THE FIX: Simplified! It now always returns "00" if the state is empty, so it never vanishes.
 	const getDisplayText = (val: string) => {
 		if (val === "") {
 			return "00";
@@ -206,7 +225,6 @@ const TimerPickerCard: React.FC<Props> = ({ theme }) => {
 			</View>
 
 			<View style={[styles.focalBox, { backgroundColor: focalBg }]}>
-				{/* LEFT INPUT WRAPPER */}
 				<View style={styles.inputWrapper}>
 					<Text
 						style={[
@@ -259,7 +277,6 @@ const TimerPickerCard: React.FC<Props> = ({ theme }) => {
 					:
 				</Text>
 
-				{/* RIGHT INPUT WRAPPER */}
 				<View style={styles.inputWrapper}>
 					<Text
 						style={[
@@ -315,7 +332,9 @@ const TimerPickerCard: React.FC<Props> = ({ theme }) => {
 			</View>
 		</View>
 	);
-};
+});
+
+TimerPickerCard.displayName = 'TimerPickerCard';
 
 const styles = StyleSheet.create({
 	baseCard: {

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
 
@@ -6,7 +6,11 @@ interface Props {
   theme: any;
 }
 
-// Perfectly centered SVGs using your exact paths and dynamic theme colors
+export interface TemperaturePickerRef {
+  getValue: () => number;
+  reset: () => void;
+}
+
 const DecreaseIcon = ({
   bgFill,
   iconFill,
@@ -43,7 +47,7 @@ const IncreaseIcon = ({
   </Svg>
 );
 
-const TemperaturePickerCard: React.FC<Props> = ({ theme }) => {
+const TemperaturePickerCard = forwardRef<TemperaturePickerRef, Props>(({ theme }, ref) => {
   const isDarkMode = theme?.background === "#060606";
 
   const [tempVal, setTempVal] = useState("20");
@@ -51,7 +55,15 @@ const TemperaturePickerCard: React.FC<Props> = ({ theme }) => {
 
   const holdIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // --- Theme Colors ---
+  useImperativeHandle(ref, () => ({
+    getValue: () => {
+      return parseInt(tempVal, 10) || 50;
+    },
+    reset: () => {
+      setTempVal("20");
+    },
+  }), [tempVal]);
+
   const baseBg = isDarkMode ? "#141414" : "#E7E7E7";
   const focalBg = isDarkMode ? "#E7E7E7" : "#2E2E2E";
   const titleColor = isDarkMode ? "#E7E7E7" : "#2E2E2E";
@@ -61,7 +73,6 @@ const TemperaturePickerCard: React.FC<Props> = ({ theme }) => {
     return () => stopHoldAction();
   }, []);
 
-  // --- Core Math Handlers ---
   const decrementValue = () => {
     setTempVal((prev) => {
       const currentTemp = parseInt(prev || "0", 10);
@@ -78,7 +89,6 @@ const TemperaturePickerCard: React.FC<Props> = ({ theme }) => {
     });
   };
 
-  // --- Hold Action Handlers ---
   const startHoldingDecrease = () => {
     if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
     holdIntervalRef.current = setInterval(decrementValue, 50);
@@ -96,7 +106,6 @@ const TemperaturePickerCard: React.FC<Props> = ({ theme }) => {
     }
   };
 
-  // --- Typing Handlers ---
   const handleTempChange = (text: string) => {
     const digits = text.replace(/[^0-9]/g, "");
     const num = parseInt(digits, 10) || 0;
@@ -157,7 +166,6 @@ const TemperaturePickerCard: React.FC<Props> = ({ theme }) => {
       </View>
 
       <View style={styles.contentContainer}>
-        {/* DECREASE BUTTON */}
         <Pressable
           onPress={decrementValue}
           onLongPress={startHoldingDecrease}
@@ -171,7 +179,6 @@ const TemperaturePickerCard: React.FC<Props> = ({ theme }) => {
           />
         </Pressable>
 
-        {/* FOCAL BOX */}
         <View style={[styles.focalBox, { backgroundColor: focalBg }]}>
           <View style={styles.inputWrapper}>
             <Text
@@ -187,7 +194,7 @@ const TemperaturePickerCard: React.FC<Props> = ({ theme }) => {
             <TextInput
               style={[
                 styles.mainNumberInput,
-                styles.hiddenInput, // THE FIX: Apply absolute positioning overlay style here
+                styles.hiddenInput,
                 { color: "transparent", opacity: 0 },
               ]}
               value={tempVal}
@@ -213,7 +220,6 @@ const TemperaturePickerCard: React.FC<Props> = ({ theme }) => {
           </View>
         </View>
 
-        {/* INCREASE BUTTON */}
         <Pressable
           onPress={incrementValue}
           onLongPress={startHoldingIncrease}
@@ -229,7 +235,9 @@ const TemperaturePickerCard: React.FC<Props> = ({ theme }) => {
       </View>
     </View>
   );
-};
+});
+
+TemperaturePickerCard.displayName = 'TemperaturePickerCard';
 
 const styles = StyleSheet.create({
   baseCard: {
@@ -286,13 +294,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "relative",
   },
-  
-  // THE FIX: Removed `position: "absolute"` so the visible layout expands dynamically to wide fonts
   visibleDisplay: {
     pointerEvents: "none",
   },
-
-  // THE FIX: Added to project the invisible TextInput exactly over the text layout boundaries
   hiddenInput: {
     position: "absolute",
     top: 0,
