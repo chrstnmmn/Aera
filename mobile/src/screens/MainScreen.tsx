@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   View,
+  Text, // Added Text import
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
@@ -72,6 +73,10 @@ const MainScreen: React.FC<MainProps> = ({ theme, onLogout }) => {
             <SystemMonitor theme={theme} />
             <TimerCard theme={theme} />
             <View style={styles.quickActionsSection}>
+              {/* Added Quick Actions Header */}
+              <Text style={[styles.sectionHeader, { color: theme.text || "#2E2E2E" }]}>
+                Quick Actions
+              </Text>
               {quickActions.map((action) => (
                 <QuickActionCard
                   key={action.id}
@@ -163,6 +168,14 @@ const styles = StyleSheet.create({
   },
   page: { width: "100%", alignItems: "center", gap: 10 },
   quickActionsSection: { width: "100%", marginTop: 10, gap: 10 },
+  // Added styling for the header
+  sectionHeader: {
+    fontFamily: "aera_heavy",
+    fontSize: 22,
+    alignSelf: "flex-start",
+    paddingLeft: 4,
+    marginBottom: 2,
+  },
   footer: {
     position: "absolute",
     bottom: 0,
