@@ -10,10 +10,10 @@ const { width } = Dimensions.get("window");
 const CIRCLE_SIZE = 38;
 
 interface Props {
-	theme: any;
-	onPowerPress?: () => void;
-	onResetPress?: () => void;
-	onBookmarkPress?: (isBookmarked: boolean) => void;
+  theme: any;
+  onPowerPress?: () => void;
+  onResetPress?: () => void;
+  onBookmarkPress?: (isBookmarked: boolean) => void;
 }
 
 // Control Center background svg
@@ -56,144 +56,136 @@ const powerButtonDarkSvg = `<svg width="76" height="74" viewBox="0 0 76 74" fill
 </svg>`;
 
 const ControlCenter: React.FC<Props> = ({
-	theme,
-	onPowerPress,
-	onResetPress,
-	onBookmarkPress,
+  theme,
+  onPowerPress,
+  onResetPress,
+  onBookmarkPress,
 }) => {
-	const isDarkMode = theme?.background === "#060606";
+  const isDarkMode = theme?.background === "#060606";
+  const [isBookmarked, setIsBookmarked] = useState(false);
 
-	// Bookmark toggle state
-	const [isBookmarked, setIsBookmarked] = useState(false);
+  const handleBookmarkPress = () => {
+    const newBookmarkState = !isBookmarked;
+    setIsBookmarked(newBookmarkState);
+    onBookmarkPress?.(newBookmarkState);
+  };
 
-	const handleBookmarkPress = () => {
-		const newBookmarkState = !isBookmarked;
-		setIsBookmarked(newBookmarkState);
-		// Pass the new state to parent callback if provided
-		onBookmarkPress?.(newBookmarkState);
-	};
+  return (
+    <View style={styles.container}>
+      <View style={styles.svgBackground}>
+        <SvgXml
+          xml={isDarkMode ? darkSvg : lightSvg}
+          width="100%"
+          height="100%"
+        />
+      </View>
 
-	return (
-		<View style={styles.container}>
-			<View style={styles.svgBackground}>
-				<SvgXml
-					xml={isDarkMode ? darkSvg : lightSvg}
-					width="100%"
-					height="100%"
-				/>
-			</View>
+      <View style={styles.buttonContainer}>
+        {/* Reset Button */}
+        <TouchableOpacity
+          key={`reset-${isDarkMode}`}
+          onPress={onResetPress}
+          activeOpacity={0.7}
+          style={[
+            styles.circleButton,
+            isDarkMode ? styles.circleButtonDark : styles.circleButtonLight,
+          ]}
+        >
+          <ResetIcon darkMode={isDarkMode} width={18} height={18} />
+        </TouchableOpacity>
 
-			<View style={styles.buttonContainer}>
-				{/* Reset Button */}
-				<TouchableOpacity
-					key={`reset-${isDarkMode}`} // forces remount on theme change
-					onPress={onResetPress}
-					activeOpacity={0.7}
-					style={[
-						styles.circleButton,
-						isDarkMode
-							? styles.circleButtonDark
-							: styles.circleButtonLight,
-					]}
-				>
-					<ResetIcon darkMode={isDarkMode} width={18} height={18} />
-				</TouchableOpacity>
+        {/* Main Power Button */}
+        <TouchableOpacity
+          onPress={onPowerPress}
+          activeOpacity={0.7}
+          style={styles.powerButtonWrapper}
+        >
+          <SvgXml
+            xml={isDarkMode ? powerButtonDarkSvg : powerButtonLightSvg}
+            width={76}
+            height={74}
+          />
+        </TouchableOpacity>
 
-				{/* Main Power Button */}
-				<TouchableOpacity
-					onPress={onPowerPress}
-					activeOpacity={0.7}
-					style={styles.powerButtonWrapper}
-				>
-					<SvgXml
-						xml={
-							isDarkMode
-								? powerButtonDarkSvg
-								: powerButtonLightSvg
-						}
-						width={76}
-						height={74}
-					/>
-				</TouchableOpacity>
-
-				{/* Bookmark Button */}
-				<TouchableOpacity
-					key={`bookmark-${isDarkMode}`} // forces remount on theme change
-					onPress={handleBookmarkPress}
-					activeOpacity={0.7}
-					style={[
-						styles.circleButton,
-						isDarkMode
-							? styles.circleButtonDark
-							: styles.circleButtonLight,
-					]}
-				>
-					<BookmarkIcon
-						darkMode={isDarkMode}
-						outline={!isBookmarked}
-						width={13}
-						height={18}
-					/>
-				</TouchableOpacity>
-			</View>
-		</View>
-	);
+        {/* Bookmark Button */}
+        <TouchableOpacity
+          key={`bookmark-${isDarkMode}`}
+          onPress={handleBookmarkPress}
+          activeOpacity={0.7}
+          style={[
+            styles.circleButton,
+            isDarkMode ? styles.circleButtonDark : styles.circleButtonLight,
+          ]}
+        >
+          <BookmarkIcon
+            darkMode={isDarkMode}
+            outline={!isBookmarked}
+            width={13}
+            height={18}
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
-	container: {
-		width: width,
-		height: 145,
-		alignSelf: "center",
-	},
-	svgBackground: {
-		position: "absolute",
-		top: 0,
-		left: 0,
-		right: 0,
-		bottom: 0,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	buttonContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 10,
-		marginTop: 32,
-		zIndex: 1,
-	},
-	powerButtonWrapper: {
-		width: 76,
-		height: 74,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	circleButton: {
-		width: CIRCLE_SIZE,
-		height: CIRCLE_SIZE,
-		borderRadius: CIRCLE_SIZE / 2,
-		alignItems: "center",
-		justifyContent: "center",
-	},
-	circleButtonLight: {
-		backgroundColor: "#E7E7E7",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.15,
-		shadowRadius: 3,
-		elevation: 3,
-	},
-	circleButtonDark: {
-		backgroundColor: "#141414",
-		borderWidth: 1,
-		borderColor: "rgba(217, 217, 217, 0.50)",
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 1 },
-		shadowOpacity: 0.15,
-		shadowRadius: 3,
-		elevation: 3,
-	},
+  container: {
+    width: width,
+    height: 145,
+    alignSelf: "center",
+    // FIX: Pulls the navigation bar up to collapse the asset's transparent padding zone
+    marginBottom: -30, 
+  },
+  svgBackground: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    // FIX: Shifted down slightly to account for the layout pull-down adjustment
+    marginTop: 36, 
+    zIndex: 1,
+  },
+  powerButtonWrapper: {
+    width: 76,
+    height: 74,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  circleButton: {
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
+    borderRadius: CIRCLE_SIZE / 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  circleButtonLight: {
+    backgroundColor: "#E7E7E7",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  circleButtonDark: {
+    backgroundColor: "#141414",
+    borderWidth: 1,
+    borderColor: "rgba(217, 217, 217, 0.50)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
 });
 
 export default ControlCenter;
