@@ -7,7 +7,7 @@ import BookmarkIcon from "../icons/BookmarkIcon";
 
 const { width } = Dimensions.get("window");
 
-const CIRCLE_SIZE = 38;
+const CIRCLE_SIZE = 38;w
 
 interface Props {
   theme: any;
