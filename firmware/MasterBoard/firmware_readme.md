@@ -1,7 +1,11 @@
-# Firmware Codes
+# MasterBoard Codebase
 
+---
+
+## main.c
+
+```
 /* main.c */
-
 #include "config.h"
 #include "settings.h"
 #include "network.h"
@@ -42,11 +46,11 @@ void telemetry_spammer_task(void *pvParameters)
         vTaskDelayUntil(&last_execution_tick, pdMS_TO_TICKS(1000));
 
         xSemaphoreTake(sys_mutex, portMAX_DELAY);
-        
+
         // 1. Authoritative Countdown Processing
         if (app_state == STATE_DRYING && !is_paused && remaining_seconds > 0) {
             remaining_seconds--;
-            
+
             // Handle completion inside the secure tick boundary
             if (remaining_seconds == 0) {
                 app_state = STATE_MAIN_MENU;
@@ -68,7 +72,7 @@ void telemetry_spammer_task(void *pvParameters)
         uint32_t rem_secs = remaining_seconds;
         uint32_t tot_secs = total_drying_seconds;
         bool paused_state = is_paused;
-        
+
         xSemaphoreGive(sys_mutex);
 
         // 3. Broadcast unified metrics to React Native over WebSocket
@@ -120,10 +124,11 @@ void app_main(void)
     xTaskCreatePinnedToCore(ui_task, "ui_task", 8192, NULL, 3, NULL, 1);           // Core 1
     xTaskCreatePinnedToCore(telemetry_spammer_task, "telemetry_spammer", 3072, NULL, 1, NULL, 0); // Core 0
 }
+```
 
+## hardware.c
 
-/* hardware.c */
-
+```
 #include "hardware.h"
 #include "driver/ledc.h"
 
@@ -199,8 +204,11 @@ void IRAM_ATTR rotary_encoder_isr(void *arg) {
         encoder_value = 0;
     }
 }
+```
 
+## network.c
 
+```
 /* network.c */
 #include "network.h"
 #include "config.h"
@@ -232,7 +240,7 @@ static void handle_incoming_ws_message(const char *payload)
 
     cJSON *event = cJSON_GetObjectItem(root, "event");
     if (cJSON_IsString(event) && (event->valuestring != NULL)) {
-        
+
         if (strcmp(event->valuestring, "START_TIMER") == 0) {
             cJSON *duration = cJSON_GetObjectItem(root, "duration");
             if (cJSON_IsNumber(duration)) {
@@ -242,10 +250,10 @@ static void handle_incoming_ws_message(const char *payload)
                 is_paused = false;
                 app_state = STATE_DRYING; // Instantly switch the OLED view state
                 xSemaphoreGive(sys_mutex);
-                
+
                 ESP_LOGI(TAG, "Network Command: Started cycle from App. Duration: %lu s", remaining_seconds);
             }
-        } 
+        }
         else if (strcmp(event->valuestring, "PAUSE_TIMER") == 0) {
             xSemaphoreTake(sys_mutex, portMAX_DELAY);
             is_paused = true;
@@ -299,7 +307,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
             return ESP_ERR_NO_MEM;
         }
         ws_pkt.payload = buf;
-        
+
         ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "Failed to process target content frame: %d", ret);
@@ -354,7 +362,7 @@ esp_err_t websocket_broadcast(const char *payload)
 
     size_t clients = 10;
     int client_fds[10] = {0};
-    
+
     // Safely pull the list of all active file descriptors from the server
     if (httpd_get_client_list(server, &clients, client_fds) != ESP_OK) {
         return ESP_FAIL;
@@ -488,8 +496,11 @@ void network_task(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
+```
 
-/* settings.c */
+## settings.c
+
+```
 #include "settings.h"
 #include "config.h"
 #include "nvs_flash.h"
@@ -531,8 +542,10 @@ void save_settings(void)
   nvs_commit(my_handle);
   nvs_close(my_handle);
 }
+```
 
-/* ui.c */
+## ui.c
+```
 #include "ui.h"
 #include "config.h"
 #include "graphics.h"
@@ -876,9 +889,96 @@ void ui_task(void *pvParameters) {
         vTaskDelay(pdMS_TO_TICKS(15));
     }
 }
+```
 
+## config.h
+```
+/* config.h */
+#ifndef CONFIG_H
+#define CONFIG_H
 
-/* grahpics.h */
+#include <stdio.h>
+#include <string.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
+#include "driver/spi_master.h"
+#include "driver/gpio.h"
+#include "u8g2.h"
+
+// Hardcoded Local Router Credentials
+#define WIFI_SSID "HUAWEI-2.4G-ZxPH"
+#define WIFI_PASS "vq5hJkB8"
+#define MAX_WIFI_RETRIES 3
+#define SERVER_PORT 8080
+
+// Hardware Interface Pin Assignments
+#define PIN_NUM_MISO -1
+#define PIN_NUM_CLK 14
+#define PIN_NUM_MOSI 27
+#define PIN_NUM_RST 26
+#define PIN_NUM_DC 25
+#define PIN_NUM_CS 33
+
+#define ROTARY_PIN_NUM_SW 23
+#define ROTARY_PIN_NUM_DT 22
+#define ROTARY_PIN_NUM_CLK 21
+
+#define BUZZER_PIN_NUM 16
+
+#define OLED_WIDTH 128
+#define OLED_HEIGHT 64
+
+// System Architecture Enums
+enum
+{
+    STATE_SPLASH,
+    STATE_MAIN_MENU,
+    STATE_SUB_MENU,
+    STATE_SETTINGS_MENU,
+    STATE_ABOUT_MENU,
+    STATE_DRYING
+};
+enum
+{
+    EDIT_NONE,
+    EDIT_TIME_VAL1,
+    EDIT_TIME_VAL2,
+    EDIT_TEMP
+};
+
+typedef enum
+{
+    WIFI_STATE_IDLE,
+    WIFI_STATE_PAIRING,
+    WIFI_STATE_CONNECTED
+} wifi_status_t;
+
+// --- Shared Thread Variables Declarations ---
+extern const char *TAG;
+extern spi_device_handle_t spi;
+extern u8g2_t u8g2;
+extern SemaphoreHandle_t sys_mutex;
+
+extern wifi_status_t wifi_state;
+extern bool manual_reconnect_request;
+extern int retry_count;
+
+extern bool uvc_on;
+extern bool buzzer_on;
+extern int brightness_level;
+
+// --- Globalized System Primitives for Thread Synchronization ---
+extern int app_state;
+extern uint32_t total_drying_seconds;
+extern uint32_t remaining_seconds;
+extern bool is_paused;
+
+#endif // CONFIG_H
+```
+
+## graphics.h
+```
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
@@ -915,10 +1015,10 @@ static const uint8_t image_Logo_Aera_bits[] = {
 static const uint8_t image_cursor_bits[] = {0x01, 0x03, 0x07, 0x0f, 0x07, 0x03, 0x01};
 
 #endif // GRAPHICS_H
+```
 
-
-
-/* hardware.h */
+## hardware.h
+```
 #ifndef HARDWARE_H
 #define HARDWARE_H
 
@@ -934,8 +1034,10 @@ void buzzer_beep(bool is_enabled);
 void rotary_encoder_isr(void *arg);
 
 #endif // HARDWARE_H
+```
 
-
+## network.h
+```
 /* network.h */
 #ifndef NETWORK_H
 #define NETWORK_H
@@ -951,8 +1053,10 @@ void network_task(void *pvParameters);
 esp_err_t websocket_broadcast(const char *payload);
 
 #endif // NETWORK_H
+```
 
-/* settings.h */
+## settings.h
+```
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
@@ -960,10 +1064,10 @@ void load_settings(void);
 void save_settings(void);
 
 #endif // SETTINGS_H
+```
 
-
-
-/* ui.h */
+## ui.h
+```
 #ifndef UI_H
 #define UI_H
 
@@ -973,3 +1077,4 @@ void drawTimer_Active(uint32_t remaining_secs, uint32_t total_secs, bool is_paus
 void ui_task(void *pvParameters);
 
 #endif // UI_H
+```

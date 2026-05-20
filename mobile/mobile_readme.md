@@ -1,4 +1,4 @@
-# React Native Code Bass
+# React Native Code Base
 ---
 
 ## App.tsx
