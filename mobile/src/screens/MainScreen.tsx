@@ -254,20 +254,18 @@ const MainScreen: React.FC<MainProps> = ({ theme, onLogout }) => {
 
 						{displaySession && (
 							<Animated.View
-								style={{
-									width: "100%",
-									opacity: timerOpacity,
-									height: timerHeight,
-									marginBottom: timerMarginBottom,
-									overflow: "hidden",
-									paddingHorizontal: 6,
-									marginHorizontal: -6,
-									zIndex: 1,
-									transform: [
-										{ translateY: timerTranslateY },
-									],
-								}}
-							>
+                style={{
+                  width: "100%",
+                  opacity: timerOpacity,
+                  height: timerHeight,
+                  marginBottom: timerMarginBottom,
+                  // REMOVED: overflow: "hidden", paddingHorizontal, and marginHorizontal
+                  zIndex: 1, 
+                  transform: [
+                    { translateY: timerTranslateY },
+                  ],
+                }}
+              >
 								<TimerCard
 									theme={theme}
 									time={formatSecondsToDisplay(

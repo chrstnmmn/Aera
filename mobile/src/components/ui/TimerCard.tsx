@@ -113,8 +113,12 @@ const styles = StyleSheet.create({
 		width: "100%",
 		minHeight: 170,
 		borderRadius: 20,
-		elevation: 8,
+		backgroundColor: "#E7E7E7", // Fallback, will be overridden by your inline styles
+		elevation: 6, // Slightly reduced to soften the Android shadow
 		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 4 }, // Added proper iOS/Cross-platform rendering
+		shadowOpacity: 0.12,
+		shadowRadius: 12,
 	},
 	overlay: {
 		width: "100%",
@@ -123,8 +127,11 @@ const styles = StyleSheet.create({
 		borderTopRightRadius: 18,
 		borderBottomRightRadius: 20,
 		borderBottomLeftRadius: 20,
-		elevation: 8,
+		elevation: 3, // Lowered inner elevation so it layers nicely over the base
 		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.06,
+		shadowRadius: 8,
 		flexDirection: "row",
 		paddingHorizontal: 20,
 		paddingVertical: 12,
