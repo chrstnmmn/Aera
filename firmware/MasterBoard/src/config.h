@@ -1,3 +1,4 @@
+/* config.h */
 #ifndef CONFIG_H
 #define CONFIG_H
 
@@ -14,6 +15,7 @@
 #define WIFI_SSID "HUAWEI-2.4G-ZxPH"
 #define WIFI_PASS "vq5hJkB8"
 #define MAX_WIFI_RETRIES 3
+#define SERVER_PORT 8080
 
 // Hardware Interface Pin Assignments
 #define PIN_NUM_MISO -1
@@ -70,5 +72,11 @@ extern int retry_count;
 extern bool uvc_on;
 extern bool buzzer_on;
 extern int brightness_level;
+
+// --- Globalized System Primitives for Thread Synchronization ---
+extern int app_state;
+extern uint32_t total_drying_seconds;
+extern uint32_t remaining_seconds;
+extern bool is_paused;
 
 #endif // CONFIG_H

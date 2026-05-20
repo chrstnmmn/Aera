@@ -1,4 +1,5 @@
-import React, { useEffect, useCallback } from "react";
+/* App.tsx */
+import React, { useEffect, useCallback, useState } from "react";
 import { StyleSheet, View, useColorScheme, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import * as NavigationBar from "expo-navigation-bar";
@@ -6,101 +7,121 @@ import * as SplashScreen from "expo-splash-screen";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 
-// Import your two environments
 import MainApp from "./src/navigation/MainApp";
 import Preview from "./src/navigation/Preview";
+
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const USE_PREVIEW_MODE = false;
 
 export default function App() {
-	const isDarkMode = useColorScheme() === "dark";
+  const isDarkMode = useColorScheme() === "dark";
+  const [activeWs, setActiveWs] = useState<WebSocket | null>(null);
 
-	// --- 1. FONT LOADING ---
-	const [fontsLoaded, fontError] = useFonts({
-		aera_black: require("./assets/fonts/aera_black.ttf"),
-		aera_heavy: require("./assets/fonts/aera_heavy.ttf"),
-		aera_bold: require("./assets/fonts/aera_bold.ttf"),
-		aera_medium: require("./assets/fonts/aera_medium.ttf"),
-		aera_regular: require("./assets/fonts/aera_regular.ttf"),
-		aera_semibold: require("./assets/fonts/aera_semibold.ttf"),
-		aera_small: require("./assets/fonts/aera_small.ttf"),
-		aera_tiny: require("./assets/fonts/aera_tiny.ttf"),
-		aera_tallmedium: require("./assets/fonts/aera_tallmedium.ttf"),
-		aera_tallsmall: require("./assets/fonts/aera_tallsmall.ttf"),
-		aera_tallcompressed: require("./assets/fonts/aera_tallcompressed.ttf"),
-	});
+  // --- 1. FONT LOADING ---
+  const [fontsLoaded, fontError] = useFonts({
+    aera_black: require("./assets/fonts/aera_black.ttf"),
+    aera_heavy: require("./assets/fonts/aera_heavy.ttf"),
+    aera_bold: require("./assets/fonts/aera_bold.ttf"),
+    aera_medium: require("./assets/fonts/aera_medium.ttf"),
+    aera_regular: require("./assets/fonts/aera_regular.ttf"),
+    aera_semibold: require("./assets/fonts/aera_semibold.ttf"),
+    aera_small: require("./assets/fonts/aera_small.ttf"),
+    aera_tiny: require("./assets/fonts/aera_tiny.ttf"),
+    aera_tallmedium: require("./assets/fonts/aera_tallmedium.ttf"),
+    aera_tallsmall: require("./assets/fonts/aera_tallsmall.ttf"),
+    aera_tallcompressed: require("./assets/fonts/aera_tallcompressed.ttf"),
+  });
 
-	// --- 2. THEME CONFIGURATION ---
-	const barSurfaceColor = isDarkMode ? "#141414" : "#E7E7E7";
-	const theme = {
-		background: isDarkMode ? "#060606" : "#FFFFFF",
-		text: isDarkMode ? "#FFFFFF" : "#2E2E2E",
-		primaryBlue: isDarkMode ? "#1CA7ED" : "#1497D9",
-		boxGraphic: isDarkMode ? "#E7E7E7" : "#00A0E9",
-		pillInactive: isDarkMode ? "#333333" : "#D9D9D9",
-		barSurface: barSurfaceColor,
-	};
+  // --- 2. THEME CONFIGURATION ---
+  const barSurfaceColor = isDarkMode ? "#141414" : "#E7E7E7";
+  const theme = {
+    background: isDarkMode ? "#060606" : "#FFFFFF",
+    text: isDarkMode ? "#FFFFFF" : "#2E2E2E",
+    primaryBlue: isDarkMode ? "#1CA7ED" : "#1497D9",
+    boxGraphic: isDarkMode ? "#E7E7E7" : "#00A0E9",
+    pillInactive: isDarkMode ? "#333333" : "#D9D9D9",
+    barSurface: barSurfaceColor,
+  };
 
-	// --- 3. ANDROID SYSTEM UI SYNC ---
-	useEffect(() => {
-		let timeoutId: ReturnType<typeof setTimeout>;
-		async function syncSystemBars() {
-			if (Platform.OS === "android") {
-				try {
-					await NavigationBar.setBackgroundColorAsync("#00000000");
-					await NavigationBar.setPositionAsync("absolute");
-					await NavigationBar.setVisibilityAsync("hidden");
-					await NavigationBar.setBehaviorAsync("overlay-swipe");
-				} catch (error) {
-					console.warn("Failed to set navigation bar state", error);
-				}
-			}
-		}
-		timeoutId = setTimeout(syncSystemBars, 150);
-		return () => clearTimeout(timeoutId);
-	}, []);
+  // --- WebSocket Connection Engine ---
+  useEffect(() => {
+    const ESP32_IP = "192.168.18.27"; 
+    const wsUrl = `ws://${ESP32_IP}:8080/ws`;
 
-	// --- 4. SPLASH SCREEN LOGIC ---
-	const onLayoutRootView = useCallback(async () => {
-		if (fontsLoaded || fontError) {
-			await SplashScreen.hideAsync();
-		}
-	}, [fontsLoaded, fontError]);
+    console.log(`[WS Engine] Attempting link establishment: ${wsUrl}`);
+    const ws = new WebSocket(wsUrl);
 
-	if (!fontsLoaded && !fontError) {
-		return null;
-	}
+    ws.onopen = () => {
+      console.log("[WS Engine] Live connection pipeline verified.");
+      setActiveWs(ws);
+    };
 
-	return (
-		<SafeAreaProvider>
-			<View
-				style={[
-					styles.container,
-					{ backgroundColor: theme.background },
-				]}
-				onLayout={onLayoutRootView}
-			>
-				<StatusBar
-					style={isDarkMode ? "light" : "dark"}
-					backgroundColor={theme.background}
-					translucent={false}
-				/>
+    ws.onclose = () => {
+      console.log("[WS Engine] Network tunnel dropped.");
+      setActiveWs(null);
+    };
 
-				{/* --- ENVIRONMENT ROUTER --- */}
-				{USE_PREVIEW_MODE ? (
-					<Preview theme={theme} />
-				) : (
-					<MainApp theme={theme} />
-				)}
-			</View>
-		</SafeAreaProvider>
-	);
+    return () => {
+      ws.close();
+    };
+  }, []);
+
+  // --- 3. ANDROID SYSTEM UI SYNC ---
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    async function syncSystemBars() {
+      if (Platform.OS === "android") {
+        try {
+          await NavigationBar.setBackgroundColorAsync("#00000000");
+          await NavigationBar.setPositionAsync("absolute");
+          await NavigationBar.setVisibilityAsync("hidden");
+          await NavigationBar.setBehaviorAsync("overlay-swipe");
+        } catch (error) {
+          console.warn("Failed to set navigation bar state", error);
+        }
+      }
+    }
+    timeoutId = setTimeout(syncSystemBars, 150);
+    return () => clearTimeout(timeoutId);
+  }, []);
+
+  // --- 4. SPLASH SCREEN LOGIC ---
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded || fontError) {
+      await SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
+  return (
+    <SafeAreaProvider>
+      <View
+        style={[styles.container, { backgroundColor: theme.background }]}
+        onLayout={onLayoutRootView}
+      >
+        <StatusBar
+          style={isDarkMode ? "light" : "dark"}
+          backgroundColor={theme.background}
+          translucent={false}
+        />
+
+        {USE_PREVIEW_MODE ? (
+          <Preview theme={theme} />
+        ) : (
+          <MainApp theme={theme} ws={activeWs} />
+        )}
+      </View>
+    </SafeAreaProvider>
+  );
 }
 
 const styles = StyleSheet.create({
-	container: {
-		flex: 1,
-	},
+  container: {
+    flex: 1,
+  },
 });

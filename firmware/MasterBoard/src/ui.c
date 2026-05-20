@@ -96,53 +96,35 @@ void ui_task(void *pvParameters) {
 
     buzzer_init();
 
-    int app_state = STATE_SPLASH;
     int main_menu_idx = 0, sub_menu_idx = 0, edit_state = EDIT_NONE;
     int time_val1 = 0, time_val2 = 0, temp_val = 20;
     bool time_is_min_sec = true, temp_is_celsius = true;
     int settings_menu_idx = 0;
-
-    uint32_t total_drying_seconds = 0;
-    uint32_t remaining_seconds = 0;
-    bool is_paused = false;
-    uint32_t last_timer_tick = 0;
 
     bool button_was_pressed = false;
     uint32_t button_press_tick = 0;
     bool long_press_handled = false;
 
     while (1) {
-        if (app_state == STATE_SPLASH) {
+        // Safe Snapshot Extraction of Core Global States
+        xSemaphoreTake(sys_mutex, portMAX_DELAY);
+        int local_app_state = app_state;
+        uint32_t local_remaining = remaining_seconds;
+        uint32_t local_total = total_drying_seconds;
+        bool local_paused = is_paused;
+        bool local_buzz_cfg = buzzer_on;
+        xSemaphoreGive(sys_mutex);
+
+        if (local_app_state == STATE_SPLASH) {
             u8g2_ClearBuffer(&u8g2);
             u8g2_DrawXBM(&u8g2, 14, 16, 99, 32, image_Logo_Aera_bits);
             u8g2_SendBuffer(&u8g2);
             vTaskDelay(pdMS_TO_TICKS(3000));
+            
+            xSemaphoreTake(sys_mutex, portMAX_DELAY);
             app_state = STATE_MAIN_MENU;
+            xSemaphoreGive(sys_mutex);
             continue;
-        }
-
-        if (app_state == STATE_DRYING) {
-            if (!is_paused && remaining_seconds > 0) {
-                uint32_t current_tick = xTaskGetTickCount();
-                if ((current_tick - last_timer_tick) >= pdMS_TO_TICKS(1000)) {
-                    xSemaphoreTake(sys_mutex, portMAX_DELAY);
-                    remaining_seconds--;
-                    xSemaphoreGive(sys_mutex);
-                    last_timer_tick += pdMS_TO_TICKS(1000);
-                }
-            } else if (remaining_seconds == 0 && total_drying_seconds > 0) {
-                app_state = STATE_MAIN_MENU;
-                total_drying_seconds = 0;
-
-                xSemaphoreTake(sys_mutex, portMAX_DELAY);
-                bool sound_alert = buzzer_on;
-                xSemaphoreGive(sys_mutex);
-
-                for (int i = 0; i < 3; i++) {
-                    buzzer_beep(sound_alert);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                }
-            }
         }
 
         int rot_dir = 0;
@@ -154,11 +136,11 @@ void ui_task(void *pvParameters) {
         portEXIT_CRITICAL(&mux);
 
         if (rot_dir != 0) {
-            if (app_state == STATE_MAIN_MENU) {
+            if (local_app_state == STATE_MAIN_MENU) {
                 main_menu_idx += rot_dir;
                 if (main_menu_idx < 0) main_menu_idx = 2;
                 if (main_menu_idx > 2) main_menu_idx = 0;
-            } else if (app_state == STATE_SUB_MENU) {
+            } else if (local_app_state == STATE_SUB_MENU) {
                 if (edit_state == EDIT_NONE) {
                     sub_menu_idx += rot_dir;
                     if (sub_menu_idx < 0) sub_menu_idx = 5;
@@ -167,7 +149,7 @@ void ui_task(void *pvParameters) {
                 else if (edit_state == EDIT_TIME_VAL1) time_val1 = (time_val1 + rot_dir + 100) % 100;
                 else if (edit_state == EDIT_TIME_VAL2) time_val2 = (time_val2 + rot_dir + 60) % 60;
                 else if (edit_state == EDIT_TEMP) temp_val = (temp_val + rot_dir + 100) % 100;
-            } else if (app_state == STATE_SETTINGS_MENU) {
+            } else if (local_app_state == STATE_SETTINGS_MENU) {
                 settings_menu_idx += rot_dir;
                 if (settings_menu_idx < 0) settings_menu_idx = 4;
                 if (settings_menu_idx > 4) settings_menu_idx = 0;
@@ -175,9 +157,6 @@ void ui_task(void *pvParameters) {
         }
 
         bool current_button_state = (gpio_get_level(ROTARY_PIN_NUM_SW) == 0);
-        xSemaphoreTake(sys_mutex, portMAX_DELAY);
-        bool local_buzz_cfg = buzzer_on;
-        xSemaphoreGive(sys_mutex);
 
         if (current_button_state && !button_was_pressed) {
             vTaskDelay(pdMS_TO_TICKS(20));
@@ -187,10 +166,14 @@ void ui_task(void *pvParameters) {
                 long_press_handled = false;
             }
         } else if (current_button_state && button_was_pressed) {
-            if (!long_press_handled && app_state == STATE_DRYING) {
+            if (!long_press_handled && local_app_state == STATE_DRYING) {
                 if ((xTaskGetTickCount() - button_press_tick) >= pdMS_TO_TICKS(3000)) {
                     long_press_handled = true;
+                    
+                    xSemaphoreTake(sys_mutex, portMAX_DELAY);
                     app_state = STATE_SUB_MENU;
+                    xSemaphoreGive(sys_mutex);
+
                     sub_menu_idx = 0;
                     edit_state = EDIT_NONE;
                     buzzer_beep(local_buzz_cfg);
@@ -203,12 +186,14 @@ void ui_task(void *pvParameters) {
             if (!long_press_handled) {
                 buzzer_beep(local_buzz_cfg);
 
-                if (app_state == STATE_MAIN_MENU) {
+                if (local_app_state == STATE_MAIN_MENU) {
+                    xSemaphoreTake(sys_mutex, portMAX_DELAY);
                     if (main_menu_idx == 0) { app_state = STATE_SUB_MENU; sub_menu_idx = 0; edit_state = EDIT_NONE; }
                     else if (main_menu_idx == 1) { app_state = STATE_SETTINGS_MENU; settings_menu_idx = 0; }
                     else if (main_menu_idx == 2) app_state = STATE_ABOUT_MENU;
+                    xSemaphoreGive(sys_mutex);
                 } 
-                else if (app_state == STATE_SUB_MENU) {
+                else if (local_app_state == STATE_SUB_MENU) {
                     if (edit_state == EDIT_NONE) {
                         if (sub_menu_idx == 0) edit_state = EDIT_TIME_VAL1;
                         else if (sub_menu_idx == 1) edit_state = EDIT_TEMP;
@@ -218,26 +203,33 @@ void ui_task(void *pvParameters) {
                             if (time_val1 == 0 && time_val2 == 0) {
                                 buzzer_beep(local_buzz_cfg); vTaskDelay(pdMS_TO_TICKS(50)); buzzer_beep(local_buzz_cfg);
                             } else {
-                                app_state = STATE_DRYING; is_paused = false;
-                                if (time_is_min_sec) total_drying_seconds = (time_val1 * 60) + time_val2;
-                                else total_drying_seconds = (time_val1 * 3600) + (time_val2 * 60);
+                                uint32_t computed_total = time_is_min_sec ? ((time_val1 * 60) + time_val2) : ((time_val1 * 3600) + (time_val2 * 60));
+                                
                                 xSemaphoreTake(sys_mutex, portMAX_DELAY);
-                                remaining_seconds = total_drying_seconds;
+                                app_state = STATE_DRYING; 
+                                is_paused = false;
+                                total_drying_seconds = computed_total;
+                                remaining_seconds = computed_total;
                                 xSemaphoreGive(sys_mutex);
-                                last_timer_tick = xTaskGetTickCount();
                             }
                         }
-                        else if (sub_menu_idx == 5) { app_state = STATE_MAIN_MENU; sub_menu_idx = 0; }
+                        else if (sub_menu_idx == 5) { 
+                            xSemaphoreTake(sys_mutex, portMAX_DELAY);
+                            app_state = STATE_MAIN_MENU; 
+                            xSemaphoreGive(sys_mutex);
+                            sub_menu_idx = 0; 
+                        }
                     }
                     else if (edit_state == EDIT_TIME_VAL1) edit_state = EDIT_TIME_VAL2;
                     else if (edit_state == EDIT_TIME_VAL2) edit_state = EDIT_NONE;
                     else if (edit_state == EDIT_TEMP) edit_state = EDIT_NONE;
                 } 
-                else if (app_state == STATE_DRYING) {
+                else if (local_app_state == STATE_DRYING) {
+                    xSemaphoreTake(sys_mutex, portMAX_DELAY);
                     is_paused = !is_paused;
-                    if (!is_paused) last_timer_tick = xTaskGetTickCount();
+                    xSemaphoreGive(sys_mutex);
                 } 
-                else if (app_state == STATE_SETTINGS_MENU) {
+                else if (local_app_state == STATE_SETTINGS_MENU) {
                     if (settings_menu_idx == 0) {
                         xSemaphoreTake(sys_mutex, portMAX_DELAY);
                         if (wifi_state != WIFI_STATE_CONNECTED) { wifi_state = WIFI_STATE_PAIRING; manual_reconnect_request = true; }
@@ -254,23 +246,42 @@ void ui_task(void *pvParameters) {
                         save_settings();
                         xSemaphoreGive(sys_mutex);
                     }
-                    else if (settings_menu_idx == 4) app_state = STATE_MAIN_MENU;
+                    else if (settings_menu_idx == 4) {
+                        xSemaphoreTake(sys_mutex, portMAX_DELAY);
+                        app_state = STATE_MAIN_MENU;
+                        xSemaphoreGive(sys_mutex);
+                    }
                 } 
-                else if (app_state == STATE_ABOUT_MENU) app_state = STATE_MAIN_MENU;
+                else if (local_app_state == STATE_ABOUT_MENU) {
+                    xSemaphoreTake(sys_mutex, portMAX_DELAY);
+                    app_state = STATE_MAIN_MENU;
+                    xSemaphoreGive(sys_mutex);
+                }
             }
         }
+
+        // Re-verify layout states post execution processing
+        xSemaphoreTake(sys_mutex, portMAX_DELAY);
+        local_app_state = app_state;
+        local_remaining = remaining_seconds;
+        local_total = total_drying_seconds;
+        local_paused = is_paused;
+        wifi_status_t local_wifi = wifi_state;
+        bool local_uv = uvc_on;
+        int local_bright = brightness_level;
+        xSemaphoreGive(sys_mutex);
 
         u8g2_ClearBuffer(&u8g2);
         bool blink_off = (xTaskGetTickCount() * portTICK_PERIOD_MS / 300) % 2 == 0;
 
-        if (app_state == STATE_MAIN_MENU) {
+        if (local_app_state == STATE_MAIN_MENU) {
             u8g2_SetFont(&u8g2, u8g2_font_profont17_tf);
             u8g2_DrawStr(&u8g2, 13, 16, "Start"); u8g2_DrawStr(&u8g2, 13, 39, "Settings"); u8g2_DrawStr(&u8g2, 12, 59, "About");
             int frame_y[] = {1, 24, 44}; int cursor_y[] = {7, 30, 50};
             u8g2_DrawFrame(&u8g2, 1, frame_y[main_menu_idx], 126, 19);
             u8g2_DrawXBM(&u8g2, 5, cursor_y[main_menu_idx], 4, 7, image_cursor_bits);
         } 
-        else if (app_state == STATE_SUB_MENU) {
+        else if (local_app_state == STATE_SUB_MENU) {
             u8g2_SetFont(&u8g2, u8g2_font_profont11_tf);
             int scroll_y = (sub_menu_idx == 5) ? 12 : 0;
             u8g2_DrawStr(&u8g2, 7, 10 - scroll_y, "Time"); u8g2_DrawStr(&u8g2, 7, 22 - scroll_y, "Temp");
@@ -294,17 +305,11 @@ void ui_task(void *pvParameters) {
             u8g2_DrawFrame(&u8g2, 0, frame_y[sub_menu_idx] - scroll_y, 128, 13);
             u8g2_DrawXBM(&u8g2, 2, cursor_y[sub_menu_idx] - scroll_y, 4, 7, image_cursor_bits);
         } 
-        else if (app_state == STATE_DRYING) {
-            xSemaphoreTake(sys_mutex, portMAX_DELAY);
-            uint32_t current_remaining = remaining_seconds;
-            xSemaphoreGive(sys_mutex);
-            drawTimer_Active(current_remaining, total_drying_seconds, is_paused);
+        else if (local_app_state == STATE_DRYING) {
+            drawTimer_Active(local_remaining, local_total, local_paused);
         } 
-        else if (app_state == STATE_SETTINGS_MENU) {
+        else if (local_app_state == STATE_SETTINGS_MENU) {
             u8g2_SetFont(&u8g2, u8g2_font_profont11_tf);
-            xSemaphoreTake(sys_mutex, portMAX_DELAY);
-            bool local_uv = uvc_on; bool local_buzz = buzzer_on; int local_bright = brightness_level; wifi_status_t local_wifi = wifi_state;
-            xSemaphoreGive(sys_mutex);
 
             char wifi_lbl[32];
             if (local_wifi == WIFI_STATE_IDLE) snprintf(wifi_lbl, sizeof(wifi_lbl), "Wi-Fi [Pair]");
@@ -313,7 +318,7 @@ void ui_task(void *pvParameters) {
             u8g2_DrawStr(&u8g2, 8, 10, wifi_lbl);
 
             u8g2_DrawStr(&u8g2, 8, 22, local_uv ? "UV Sterilize [ON]" : "UV Sterilize [OFF]");
-            u8g2_DrawStr(&u8g2, 8, 34, local_buzz ? "Buzzer Alert [ON]" : "Buzzer Alert [OFF]");
+            u8g2_DrawStr(&u8g2, 8, 34, local_buzz_cfg ? "Buzzer Alert [ON]" : "Buzzer Alert [OFF]");
 
             if (local_bright == 0) u8g2_DrawStr(&u8g2, 8, 46, "Brightness [Low]");
             else if (local_bright == 1) u8g2_DrawStr(&u8g2, 8, 46, "Brightness [Mid]");
@@ -324,7 +329,7 @@ void ui_task(void *pvParameters) {
             u8g2_DrawFrame(&u8g2, 0, frame_y[settings_menu_idx], 128, 13);
             u8g2_DrawXBM(&u8g2, 2, cursor_y[settings_menu_idx], 4, 7, image_cursor_bits);
         } 
-        else if (app_state == STATE_ABOUT_MENU) {
+        else if (local_app_state == STATE_ABOUT_MENU) {
             u8g2_SetFont(&u8g2, u8g2_font_profont11_tf);
             u8g2_DrawStr(&u8g2, 8, 9, "Hardware: Aera Nano"); u8g2_DrawStr(&u8g2, 8, 19, "Firmware: v1.0.0");
             u8g2_DrawStr(&u8g2, 8, 29, "MDNS: aera-system"); u8g2_DrawStr(&u8g2, 8, 39, "Suffix: .local");
