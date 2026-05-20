@@ -1,4 +1,8 @@
-/* App.tsx */
+# React Native Code Bass
+---
+
+## App.tsx
+```
 import React, { useEffect, useCallback, useState } from "react";
 import { StyleSheet, View, useColorScheme, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -125,411 +129,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
-
-
-/* MainScreen.tsx */
-/* MainScreen.tsx */
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useMemo,
-  useCallback,
-} from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-  Animated,
-} from "react-native";
-import NavigationBar from "../components/ui/NavigationBar";
-import AeraStatusBar from "../components/ui/AeraStatusBar";
-import AeraTitlebar from "../components/ui/AeraTitlebar";
-import SystemMonitor from "../components/ui/SystemMonitor";
-import TimerCard from "../components/ui/TimerCard";
-import QuickActionCard, {
-  QuickActionState,
-} from "../components/ui/QuickActionCard";
-import TimerPickerCard from "../components/ui/TimerPickerCard";
-import type { TimerPickerRef } from "../components/ui/TimerPickerCard";
-import TemperaturePickerCard from "../components/ui/TemperaturePickerCard";
-import type { TemperaturePickerRef } from "../components/ui/TemperaturePickerCard";
-import ControlCenter from "../components/ui/ControlCenter";
-
-interface ThemeType {
-  background: string;
-  text?: string;
-  [key: string]: any;
-}
-
-interface MainProps {
-  theme: ThemeType;
-  onLogout?: () => void;
-  ws: WebSocket | null; // Accept network property reference from navigation wrapper
-}
-
-interface ActiveSessionType {
-  title: string;
-  initialSeconds: number;
-  secondsLeft: number;
-  isHrMin: boolean;
-}
-
-const KEYBOARD_CONFIG = {
-  scrollY: 80,
-  offsetIos: 40,
-  offsetAndroid: 20,
-};
-
-const QUICK_ACTIONS = [
-  { id: "1", title: "Quick Dry", time: "00:10", subtitle: "min : sec 50°C" },
-  { id: "2", title: "Body Towel", time: "02:30", subtitle: "hr : min 65°C" },
-  {
-    id: "3",
-    title: "Cotton Shirt",
-    time: "05:00",
-    subtitle: "min : sec 55°C",
-  },
-];
-
-const INITIAL_DEVICE_STATUS = {
-  water: 75 as 0 | 25 | 50 | 75 | 100 | null,
-  door: "locked" as "locked" | "unlocked" | "inactive",
-  uvActive: true,
-  wifiLevel: 3 as 1 | 2 | 3 | 4,
-  connectionState: "connected" as "connecting" | "connected" | "offline",
-};
-
-const parseTimeToSeconds = (timeStr: string, isHrMin: boolean): number => {
-  const [parts1, parts2] = timeStr.split(":").map(Number);
-  if (isHrMin) return parts1 * 3600 + parts2 * 60;
-  return parts1 * 60 + parts2;
-};
-
-const formatSecondsToDisplay = (
-  totalSeconds: number,
-  isHrMin: boolean,
-): string => {
-  if (isHrMin) {
-    const totalMinutes = Math.ceil(totalSeconds / 60);
-    const hrs = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    return `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
-  }
-  const mins = Math.floor(totalSeconds / 60);
-  const secs = totalSeconds % 60;
-  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-};
-
-const MainScreen: React.FC<MainProps> = ({ theme, onLogout, ws }) => {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "timer" | "settings">("dashboard");
-  const [activeActionId, setActiveActionId] = useState<string | null>(null);
-  const [activeSession, setActiveSession] = useState<ActiveSessionType | null>(null);
-  const [isPaused, setIsPaused] = useState<boolean>(false);
-  const [displaySession, setDisplaySession] = useState<ActiveSessionType | null>(null);
-
-  const scrollViewRef = useRef<ScrollView>(null);
-  const timerPickerRef = useRef<TimerPickerRef>(null);
-  const temperaturePickerRef = useRef<TemperaturePickerRef>(null);
-
-  const isStacked = !!activeSession;
-  const stackAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(stackAnim, {
-      toValue: isStacked ? 1 : 0,
-      duration: 380,
-      useNativeDriver: false,
-    }).start();
-  }, [isStacked, stackAnim]);
-
-  useEffect(() => {
-    if (activeSession) {
-      setDisplaySession(activeSession);
-    } else {
-      const timeout = setTimeout(() => {
-        setDisplaySession(null);
-      }, 380);
-      return () => clearTimeout(timeout);
-    }
-  }, [activeSession]);
-
-  useEffect(() => {
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-
-    const keyboardDidShowListener = Keyboard.addListener(showEvent, () => {
-      if (activeTab === "timer") {
-        setTimeout(() => {
-          scrollViewRef.current?.scrollTo({ y: KEYBOARD_CONFIG.scrollY, animated: true });
-        }, 60);
-      }
-    });
-
-    const keyboardDidHideListener = Keyboard.addListener(hideEvent, () => {
-      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-    });
-
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, [activeTab]);
-
-  // --- Real-time Network Interceptor Hook ---
-  useEffect(() => {
-    if (!ws) return;
-
-    const handleNetworkMessage = (event: WebSocketMessageEvent) => {
-      try {
-        const payload = JSON.parse(event.data);
-        
-        if (payload.event === "TIMER_SYNC") {
-          // STATE_DRYING constant maps directly to 5 from your hardware settings configurations
-          if (payload.app_state === 5 && payload.secondsLeft > 0) {
-            setActiveSession({
-              title: activeSession?.title || "Drying Core",
-              initialSeconds: payload.totalSeconds,
-              secondsLeft: payload.secondsLeft,
-              isHrMin: payload.totalSeconds >= 3600,
-            });
-            setIsPaused(Boolean(payload.isPaused));
-          } else {
-            // Hardware dropped to main menu or ended cycle -> Close layout cards
-            setActiveSession(null);
-          }
-        }
-      } catch (err) {
-        console.warn("Error unpacking sync payload layout contexts.", err);
-      }
-    };
-
-    ws.addEventListener("message", handleNetworkMessage);
-    return () => {
-      ws.removeEventListener("message", handleNetworkMessage);
-    };
-  }, [ws, activeSession]);
-
-  const titlebarMode = useMemo(() => {
-    return activeTab === "timer" ? "setup" : activeTab;
-  }, [activeTab]);
-
-  // --- Reactive Control Transmission Handlers ---
-  const handlePauseToggle = () => {
-    if (ws) {
-      ws.send(JSON.stringify({
-        event: isPaused ? "RESUME_TIMER" : "PAUSE_TIMER"
-      }));
-    }
-  };
-
-  const handleCustomTimerStart = useCallback(() => {
-    const timerValues = timerPickerRef.current?.getValues();
-    if (!timerValues || !ws) return;
-
-    const { leftVal, rightVal, isMinSec } = timerValues;
-    const timeStr = `${leftVal || "00"}:${rightVal || "00"}`;
-    const isHrMin = !isMinSec;
-    const totalSeconds = parseTimeToSeconds(timeStr, isHrMin);
-
-    if (totalSeconds <= 0) return;
-
-    ws.send(JSON.stringify({
-      event: "START_TIMER",
-      duration: totalSeconds
-    }));
-
-    setActiveTab("dashboard");
-  }, [ws]);
-
-  const handleResetTimer = useCallback(() => {
-    timerPickerRef.current?.reset();
-    temperaturePickerRef.current?.reset();
-  }, []);
-
-  const renderContent = () => {
-    const timerOpacity = stackAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 1] });
-    const timerTranslateY = stackAnim.interpolate({ inputRange: [0, 1], outputRange: [-160, 0] });
-    const timerHeight = stackAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 200] });
-    const timerMarginBottom = stackAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 10] });
-
-    const scrollView = (
-      <ScrollView
-        ref={scrollViewRef}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        {activeTab === "dashboard" && (
-          <View style={styles.page}>
-            <View style={styles.monitorContainer}>
-              <SystemMonitor theme={theme} />
-            </View>
-
-            {displaySession && (
-              <Animated.View
-                style={{
-                  width: "100%",
-                  opacity: timerOpacity,
-                  height: timerHeight,
-                  marginBottom: timerMarginBottom,
-                  zIndex: 1, 
-                  transform: [{ translateY: timerTranslateY }],
-                }}
-              >
-                <TimerCard
-                  theme={theme}
-                  time={formatSecondsToDisplay(displaySession.secondsLeft, displaySession.isHrMin)}
-                  isHrMin={displaySession.isHrMin}
-                  progress={(displaySession.initialSeconds - displaySession.secondsLeft) / displaySession.initialSeconds}
-                  percentage={Math.round(((displaySession.initialSeconds - displaySession.secondsLeft) / displaySession.initialSeconds) * 100)}
-                  isPaused={isPaused}
-                  onPauseToggle={handlePauseToggle}
-                  onCancel={() => {
-                    if (ws) ws.send(JSON.stringify({ event: "STOP_TIMER" }));
-                  }}
-                />
-              </Animated.View>
-            )}
-
-            <View style={styles.quickActionsSection}>
-              <Text style={[styles.sectionHeader, { color: theme.text || "#2E2E2E" }]}>
-                Quick Actions
-              </Text>
-
-              {QUICK_ACTIONS.map((action, index) => {
-                let cardState: QuickActionState = "default";
-                if (isStacked) {
-                  cardState = "disabled";
-                } else if (activeActionId === action.id) {
-                  cardState = "power_enabled";
-                }
-
-                const animatedMarginTop = stackAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [0, index === 0 ? 0 : -86],
-                });
-
-                const animatedMarginBottom = stackAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [10, 0],
-                });
-
-                return (
-                  <Animated.View
-                    key={action.id}
-                    style={{
-                      marginTop: animatedMarginTop,
-                      marginBottom: animatedMarginBottom,
-                      zIndex: QUICK_ACTIONS.length - index,
-                    }}
-                  >
-                    <QuickActionCard
-                      theme={theme}
-                      title={action.title}
-                      time={action.time}
-                      subtitle={action.subtitle}
-                      state={cardState}
-                      onCardPress={() => setActiveActionId((prev) => (prev === action.id ? null : action.id))}
-                      onPowerPress={() => {
-                        const isHrMinFormat = action.subtitle.includes("hr : min");
-                        const totalSeconds = parseTimeToSeconds(action.time, isHrMinFormat);
-
-                        if (ws && totalSeconds > 0) {
-                          ws.send(JSON.stringify({
-                            event: "START_TIMER",
-                            duration: totalSeconds
-                          }));
-                        }
-                      }}
-                    />
-                  </Animated.View>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
-        {activeTab === "timer" && (
-          <View style={styles.timerPageContainer}>
-            <TimerPickerCard ref={timerPickerRef} theme={theme} />
-            <TemperaturePickerCard ref={temperaturePickerRef} theme={theme} />
-          </View>
-        )}
-      </ScrollView>
-    );
-
-    if (activeTab === "timer") {
-      return (
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior="padding"
-          keyboardVerticalOffset={Platform.OS === "ios" ? KEYBOARD_CONFIG.offsetIos : KEYBOARD_CONFIG.offsetAndroid}
-        >
-          {scrollView}
-        </KeyboardAvoidingView>
-      );
-    }
-
-    return <View style={styles.flex}>{scrollView}</View>;
-  };
-
-  return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={styles.headerContainer}>
-        <AeraStatusBar theme={theme} status={INITIAL_DEVICE_STATUS} />
-        <AeraTitlebar
-          mode={titlebarMode}
-          theme={theme}
-          status={INITIAL_DEVICE_STATUS.connectionState}
-          onPresetPress={() => console.log("Preset Menu Pressed")}
-        />
-      </View>
-
-      {renderContent()}
-
-      <View style={styles.footer}>
-        {activeTab === "timer" && (
-          <View style={styles.controlCenterContainer}>
-            <ControlCenter
-              theme={theme}
-              onPowerPress={handleCustomTimerStart}
-              onResetPress={handleResetTimer}
-              onBookmarkPress={(isBookmarked) => console.log(`Bookmark ${isBookmarked ? "saved" : "removed"}`)}
-            />
-          </View>
-        )}
-        <NavigationBar theme={theme} activeTab={activeTab} onTabChange={(tab: any) => setActiveTab(tab)} />
-      </View>
-    </View>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  flex: { flex: 1 },
-  headerContainer: { zIndex: 10 },
-  scrollContent: {
-    paddingHorizontal: 10,
-    paddingTop: 10,
-    paddingBottom: 220,
-  },
-  page: { width: "100%", alignItems: "center" },
-  timerPageContainer: { width: "100%", alignItems: "center", gap: 10 },
-  monitorContainer: { width: "100%", zIndex: 5, elevation: 5, marginBottom: 10 },
-  quickActionsSection: { width: "100%", marginTop: 10 },
-  sectionHeader: { fontFamily: "aera_heavy", fontSize: 22, alignSelf: "flex-start", paddingLeft: 4, marginBottom: 10 },
-  footer: { position: "absolute", bottom: 0, width: "100%", zIndex: 20, elevation: 20, flexDirection: "column", justifyContent: "flex-end" },
-  controlCenterContainer: { width: "100%", marginBottom: 0, paddingBottom: 0 },
-});
-
-export default MainScreen;
-
+```
+## MainApp.tsx
+```
 import React, { useState } from "react";
 import Setup from "./Setup";
 import MainScreen from "../screens/MainScreen";
@@ -554,9 +156,9 @@ export default function MainApp({ theme, ws }: MainAppProps) {
     <Setup theme={theme} onComplete={() => setIsSetupComplete(true)} />
   );
 }
-
-
-
+```
+## Preview.tsx
+```
 import React from "react";
 import { View, StyleSheet, Text, ScrollView } from "react-native";
 import ResetIcon from "../components/icons/ResetIcon";
@@ -675,158 +277,516 @@ const styles = StyleSheet.create({
 		opacity: 0.7,
 	},
 });
+```
+---
+### UI Components
+---
 
+## AeraStatusBar.tsx
+```
+import React from "react";
+import { View, StyleSheet, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-## Ui Component
+// Import the icon library components we built
+import AeraLogo from "../icons/AeraLogo";
+import WaterLevelIcon from "../icons/WaterLevelIcon";
+import DoorIcon from "../icons/DoorIcon";
+import UVIcon from "../icons/UVIcon";
+import WifiIcon from "../icons/WifiIcon";
 
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import ChamberTempIcon from "../icons/ChamberTempIcon";
-import HeaterTempIcon from "../icons/HeaterTempIcon";
-import RelativeHumidityIcon from "../icons/RelativeHumidityIcon";
-import FanSpeedMonitorIcon from "../icons/FanSpeedMonitorIcon";
-
-interface Props {
-  theme: any;
+interface StatusBarProps {
+	theme: any;
+	status: {
+		water: 0 | 25 | 50 | 75 | 100 | null;
+		door: "locked" | "unlocked" | "inactive";
+		uvActive: boolean;
+		wifiLevel: 1 | 2 | 3 | 4;
+	};
 }
 
-const SystemMonitor: React.FC<Props> = ({ theme }) => {
-  const isDarkMode = theme.background === "#060606";
-  const textColor = isDarkMode ? "#E7E7E7" : "#2E2E2E";
+const AeraStatusBar: React.FC<StatusBarProps> = ({ theme, status }) => {
+	const insets = useSafeAreaInsets();
+	const isDarkMode = theme.background === "#060606";
 
-  const [data, setData] = useState({ temp: 20, humidity: 0, fan: 0 });
+	// Background and Border logic from Figma
+	const barBg = isDarkMode ? "#141414" : "#E7E7E7";
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setData({
-        temp: Math.floor(Math.random() * (70 - 20 + 1)) + 20,
-        humidity: Math.floor(Math.random() * 101),
-        fan: Math.floor(Math.random() * 101),
-      });
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+	return (
+		<View
+			style={[
+				styles.outerContainer,
+				{
+					backgroundColor: barBg,
+					paddingTop: insets.top, // Handles Notch/Dynamic Island
+				},
+				isDarkMode ? styles.darkBorder : styles.lightShadow,
+			]}
+		>
+			<View style={styles.innerContent}>
+				{/* LEFT: Brand Identity */}
+				<AeraLogo theme={theme} />
+
+				{/* RIGHT: Telemetry Group (gap: 13 from Figma) */}
+				<View style={styles.statusGroup}>
+					<WaterLevelIcon theme={theme} percentage={status.water} />
+
+					<View style={styles.iconSeparator}>
+						<DoorIcon theme={theme} status={status.door} />
+					</View>
+
+					<View style={styles.iconSeparator}>
+						<UVIcon theme={theme} isActive={status.uvActive} />
+					</View>
+
+					<View style={styles.iconSeparator}>
+						<WifiIcon theme={theme} level={status.wifiLevel} />
+					</View>
+				</View>
+			</View>
+		</View>
+	);
+};
+
+const styles = StyleSheet.create({
+	outerContainer: {
+		width: "100%",
+		zIndex: 10,
+	},
+	innerContent: {
+		height: 56, // Matches the 55.52 height in Figma
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		paddingHorizontal: 17, // Matches 'left: 17' in Figma
+	},
+	statusGroup: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "flex-end",
+	},
+	iconSeparator: {
+		marginLeft: 13, // Matches 'gap: 13' in Figma status group
+	},
+	lightShadow: {
+		...Platform.select({
+			ios: {
+				shadowColor: "#000",
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.3,
+				shadowRadius: 3,
+			},
+			android: {
+				elevation: 10,
+			},
+		}),
+	},
+	darkBorder: {
+		borderBottomWidth: 1,
+		borderBottomColor: "rgba(217, 217, 217, 0.50)", // Matches Figma Darkmode border
+	},
+});
+
+export default AeraStatusBar;
+```
+
+## AeraTitlebar.tsx
+```
+import React from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  Platform,
+} from "react-native";
+import Svg, { Path, G, Mask } from "react-native-svg";
+
+// Individual icon imports
+import AeraIcon from "../icons/AeraIcon";
+import WifiIconTitleBar from "../icons/WifiIconTitleBar";
+import CloudConnectedIconTitleBar from "../icons/CloudConnectedIconTitleBar";
+import CloudDisconnectedIconTitleBar from "../icons/CloudDisconnectedIconTitleBar";
+import SetupTimerIconTitleBar from "../icons/SetupTimerIconTitleBar";
+import MyPresetMenuIcon from "../icons/MyPresetMenuIcon";
+import SettingsIconTitlebar from "../icons/SettingsIconTitlebar";
+
+interface AeraTitlebarProps {
+  mode: "dashboard" | "setup" | "settings";
+  theme: any;
+  status?: "connecting" | "connected" | "offline";
+  onPresetPress?: () => void;
+}
+
+const AeraTitlebar = ({
+  mode,
+  theme,
+  status = "offline",
+  onPresetPress,
+}: AeraTitlebarProps) => {
+  const isDarkMode = theme.barSurface.toLowerCase().trim() === "#141414";
+
+  // Figma Path Data
+  const mainPath = "M0 0h412v35.49c0 11.046-8.954 20-20 20H20c-11.046 0-20-8.954-20-20z";
+  const borderPath = "M0 0h412zm412 35.49c0 11.599-9.402 21-21 21H21c-11.598 0-21-9.401-21-21 0 10.494 8.954 19 20 19h372c11.046 0 20-8.506 20-19m-412 20V0zM412 0v55.49z";
+
+  const renderLeft = () => {
+    switch (mode) {
+      case "dashboard":
+        return (
+          <View style={styles.leftGroup}>
+            <AeraIcon color={theme.text} size={18} />
+            <Text style={[styles.titleText, { color: theme.text }]}>Aera Nano</Text>
+          </View>
+        );
+      case "setup":
+        return (
+          <View style={styles.leftGroup}>
+            <SetupTimerIconTitleBar color={theme.text} size={20} />
+            <Text style={[styles.titleText, { color: theme.text }]}>Setup</Text>
+          </View>
+        );
+      case "settings":
+        return (
+          <View style={styles.leftGroup}>
+            <SettingsIconTitlebar color={theme.text} size={14} />
+            <Text style={[styles.titleText, { color: theme.text }]}>Settings</Text>
+          </View>
+        );
+    }
+  };
+
+  const renderRight = () => {
+    if (mode === "dashboard") {
+      return (
+        <View style={styles.statusGroup}>
+          <Text style={[styles.statusLabel, { color: theme.text }]}>
+            {status === "connecting" ? "Connecting" : status === "connected" ? "Connected" : "Offline"}
+          </Text>
+          {status === "connecting" && <WifiIconTitleBar color={theme.text} />}
+          {status === "connected" && <CloudConnectedIconTitleBar color={theme.text} />}
+          {status === "offline" && <CloudDisconnectedIconTitleBar color={theme.text} />}
+        </View>
+      );
+    }
+    if (mode === "setup") {
+      return (
+        <TouchableOpacity
+          style={[styles.presetButton, isDarkMode && styles.presetButtonDark]}
+          activeOpacity={0.8}
+          onPress={onPresetPress}
+        >
+          <MyPresetMenuIcon size={12} color="#E7E7E7" />
+          <Text style={styles.presetText}>My Preset</Text>
+        </TouchableOpacity>
+      );
+    }
+    return null;
+  };
 
   return (
-    <View
-      key={isDarkMode ? "monitor-dark" : "monitor-light"}
-      style={[
-        styles.base,
-        { backgroundColor: isDarkMode ? "#141414" : "#E7E7E7" },
-        isDarkMode && styles.darkBorder,
-      ]}
-    >
-      <View style={styles.grid}>
-        
-        {/* TOP LEFT: CHAMBER TEMP */}
-        <View style={styles.cell}>
-          <View style={styles.headerRow}>
-            <Text style={[styles.headerText, { color: textColor }]}>Chamber Temp (°C)</Text>
-            <ChamberTempIcon fill={textColor} width={8} height={16} />
-          </View>
-          <Text style={[styles.mainValue, { color: textColor }]}>{data.temp}°</Text>
-        </View>
+    <View style={styles.shell}>
+      {/* 1. VISUAL BACKGROUND (Handles the shadow and color) */}
+      <View 
+        style={[
+          styles.background, 
+          { backgroundColor: theme.barSurface }
+        ]} 
+      />
 
-        {/* TOP RIGHT: HEATER TEMP */}
-        <View style={styles.cell}>
-          <View style={styles.headerRow}>
-            <Text style={[styles.headerText, { color: textColor }]}>Heater Temp (°C)</Text>
-            <HeaterTempIcon fill={textColor} width={15} height={16} />
-          </View>
-          <Text style={[styles.mainValue, { color: textColor }]}>{data.temp}°</Text>
+      {/* 2. SVG LAYER (Only for the Dark Mode border effect) */}
+      {isDarkMode && (
+        <View style={styles.svgOverlay}>
+          <Svg width="100%" height="100%" viewBox="0 0 412 56" preserveAspectRatio="none">
+            <Mask id="m">
+              <Path d={mainPath} fill="white" />
+            </Mask>
+            <Path d={borderPath} fill="#d9d9d9" fillOpacity="0.5" mask="url(#m)" />
+          </Svg>
         </View>
+      )}
 
-        {/* BOTTOM LEFT: HUMIDITY */}
-        <View style={styles.cell}>
-          <View style={styles.headerRow}>
-            <Text style={[styles.headerText, { color: textColor }]}>Relative Humidity</Text>
-            <RelativeHumidityIcon fill={textColor} width={12} height={16} />
-          </View>
-          <Text style={[styles.mainValue, { color: textColor }]}>{data.humidity}%</Text>
-        </View>
-
-        {/* BOTTOM RIGHT: FAN SPEED */}
-        <View style={styles.cell}>
-          <View style={styles.headerRow}>
-            <Text style={[styles.headerText, { color: textColor }]}>Fan Speed</Text>
-            <FanSpeedMonitorIcon fill={textColor} width={18} height={15} />
-          </View>
-          
-          {/* THE FIX: These rows now combine to exactly 60px height to match the Humidity text */}
-          <View style={styles.fanRow}>
-            <Text style={[styles.fanLabel, { color: textColor }]}>Intake</Text>
-            <Text style={[styles.fanValue, { color: textColor }]}>{data.fan}%</Text>
-          </View>
-          
-          <View style={styles.fanRow}>
-            <Text style={[styles.fanLabel, { color: textColor }]}>Exhaust</Text>
-            <Text style={[styles.fanValue, { color: textColor }]}>{data.fan}%</Text>
-          </View>
-        </View>
-
+      {/* 3. CONTENT LAYER */}
+      <View style={styles.content}>
+        {renderLeft()}
+        {renderRight()}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  base: {
+  shell: {
     width: "100%",
-    paddingInline: 20,
-    paddingBlock: 10,
-    borderRadius: 20,
-    elevation: 8,
-    shadowColor: "#000",
+    height: 56, // Fixed height to match Figma bar
+    backgroundColor: "transparent",
+    zIndex: 1,
   },
-  darkBorder: {
+  background: {
+    ...StyleSheet.absoluteFillObject,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    // THE SHADOW FIX
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 15, // High elevation for the bottom shadow
+      },
+    }),
+  },
+  svgOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  content: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+  },
+  leftGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  titleText: {
+    fontFamily: "aera_bold",
+    fontSize: 14,
+    letterSpacing: -0.5,
+  },
+  statusGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  statusLabel: {
+    fontFamily: "aera_medium",
+    fontSize: 12,
+  },
+  presetButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2E2E2E",
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    gap: 8,
+  },
+  presetButtonDark: {
     borderWidth: 1,
     borderColor: "rgba(217, 217, 217, 0.50)",
   },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  cell: {
-    width: "48%",
-    marginBottom: 4,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    height: 18, // Lock header height for better alignment
-  },
-  headerText: {
+  presetText: {
+    color: "#E7E7E7",
     fontFamily: "aera_bold",
-    fontSize: 11,
-  },
-  mainValue: {
-    fontFamily: "aera_small",
-    fontSize: 52,
-    lineHeight: 60,
-    letterSpacing: -1,
-  },
-  fanRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    height: 30, // 30 + 30 = 60 (Matches Humidity lineHeight)
-  },
-  fanLabel: {
-    fontFamily: "aera_medium",
-    fontSize: 16,
-    lineHeight: 30,
-  },
-  fanValue: {
-    fontFamily: "aera_tiny",
-    fontSize: 26,
-    lineHeight: 30,
+    fontSize: 12,
   },
 });
 
-export default SystemMonitor;
+export default AeraTitlebar;
+```
+## ControlCenter.tsx
+```
+import React, { useState } from "react";
+import { View, StyleSheet, Dimensions, TouchableOpacity } from "react-native";
+import { SvgXml } from "react-native-svg";
 
+import ResetIcon from "../icons/ResetIcon";
+import BookmarkIcon from "../icons/BookmarkIcon";
+
+const { width } = Dimensions.get("window");
+
+const CIRCLE_SIZE = 38;
+
+interface Props {
+  theme: any;
+  onPowerPress?: () => void;
+  onResetPress?: () => void;
+  onBookmarkPress?: (isBookmarked: boolean) => void;
+}
+
+// Control Center background svg
+const lightSvg = `<svg width="412" height="153" viewBox="0 0 412 153" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#a)"><path d="M0 73.2c0-24.853 20.147-45 45-45h322c24.853 0 45 20.147 45 45v51.548H0z" fill="#e7e7e7"/></g><defs><filter id="a" x="-28.2" y="0" width="468.4" height="152.948" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="14.1"/><feComposite in2="hardAlpha" operator="out"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"/><feBlend in2="BackgroundImageFix" result="effect1_dropShadow_1997_3299"/><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feMorphology radius="1" operator="dilate" in="SourceAlpha" result="effect2_dropShadow_1997_3299"/><feOffset/><feGaussianBlur stdDeviation="2"/><feComposite in2="hardAlpha" operator="out"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"/><feBlend in2="effect1_dropShadow_1997_3299" result="effect2_dropShadow_1997_3299"/><feBlend in="SourceGraphic" in2="effect2_dropShadow_1997_3299" result="shape"/></filter></defs></svg>`;
+
+const darkSvg = `<svg width="412" height="154" viewBox="0 0 412 154" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#a)"><mask id="b" maskUnits="userSpaceOnUse" x="0" y="28.2" width="412" height="98" fill="#000"><path fill="#fff" d="M0 28.2h412v98H0z"/><path d="M0 74.2c0-24.853 20.147-45 45-45h322c24.853 0 45 20.147 45 45v51.548H0z"/></mask><path d="M0 74.2c0-24.853 20.147-45 45-45h322c24.853 0 45 20.147 45 45v51.548H0z" fill="#141414" shape-rendering="crispEdges"/><path d="M0 74.2c0-25.405 20.595-46 46-46h320c25.405 0 46 20.595 46 46 0-24.3-20.147-44-45-44H45c-24.853 0-45 19.7-45 44m412 51.548H0zm-412 0V29.2zM412 29.2v96.548z" fill="#d9d9d9" fill-opacity=".5" mask="url(#b)"/></g><defs><filter id="a" x="-28.2" y="0" width="468.4" height="153.948" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="14.1"/><feComposite in2="hardAlpha" operator="out"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"/><feBlend in2="BackgroundImageFix" result="effect1_dropShadow_1997_1155"/><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feMorphology radius="1" operator="dilate" in="SourceAlpha" result="effect2_dropShadow_1997_1155"/><feOffset/><feGaussianBlur stdDeviation="2"/><feComposite in2="hardAlpha" operator="out"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"/><feBlend in2="effect1_dropShadow_1997_1155" result="effect2_dropShadow_1997_1155"/><feBlend in="SourceGraphic" in2="effect2_dropShadow_1997_1155" result="shape"/></filter></defs></svg>`;
+
+// Power button SVG with shadow - Light mode
+const powerButtonLightSvg = `<svg width="76" height="74" viewBox="0 0 76 74" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g filter="url(#buttonShadowLight)">
+    <rect x="8" y="7" width="60" height="60" rx="20" fill="#D52222"/>
+    <g transform="translate(22, 21)">
+      <path d="M15.869 31.738C7.119 31.738 0 24.607 0 15.842c0-4.764 2.079-9.23 5.704-12.248a1.678 1.678 0 1 1 2.149 2.578c-2.857 2.38-4.496 5.905-4.496 9.67 0 6.914 5.613 12.539 12.512 12.539S28.38 22.756 28.38 15.842a12.51 12.51 0 0 0-4.564-9.662 1.679 1.679 0 1 1 2.136-2.588 15.86 15.86 0 0 1 5.785 12.25c0 8.765-7.119 15.896-15.868 15.896" fill="#fff"/>
+      <path d="M15.868 17.09a1.68 1.68 0 0 1-1.678-1.68V1.679a1.679 1.679 0 0 1 3.357 0v13.733a1.68 1.68 0 0 1-1.679 1.678" fill="#fff"/>
+    </g>
+  </g>
+  <defs>
+    <filter id="buttonShadowLight" x="-4" y="-1" width="84" height="82" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.15"/>
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.30"/>
+    </filter>
+  </defs>
+</svg>`;
+
+// Power button SVG with shadow - Dark mode
+const powerButtonDarkSvg = `<svg width="76" height="74" viewBox="0 0 76 74" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g filter="url(#buttonShadowDark)">
+    <rect x="8" y="7" width="60" height="60" rx="20" fill="#141414" stroke="rgba(217, 217, 217, 0.50)" stroke-width="1"/>
+    <g transform="translate(22, 21)">
+      <path d="M15.869 31.738C7.119 31.738 0 24.607 0 15.842c0-4.764 2.079-9.23 5.704-12.248a1.678 1.678 0 1 1 2.149 2.578c-2.857 2.38-4.496 5.905-4.496 9.67 0 6.914 5.613 12.539 12.512 12.539S28.38 22.756 28.38 15.842a12.51 12.51 0 0 0-4.564-9.662 1.679 1.679 0 1 1 2.136-2.588 15.86 15.86 0 0 1 5.785 12.25c0 8.765-7.119 15.896-15.868 15.896" fill="#d52222"/>
+      <path d="M15.868 17.09a1.68 1.68 0 0 1-1.678-1.68V1.679a1.679 1.679 0 0 1 3.357 0v13.733a1.68 1.68 0 0 1-1.679 1.678" fill="#d52222"/>
+    </g>
+  </g>
+  <defs>
+    <filter id="buttonShadowDark" x="-4" y="-1" width="84" height="82" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.15"/>
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.30"/>
+    </filter>
+  </defs>
+</svg>`;
+
+const ControlCenter: React.FC<Props> = ({
+  theme,
+  onPowerPress,
+  onResetPress,
+  onBookmarkPress,
+}) => {
+  const isDarkMode = theme?.background === "#060606";
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
+  const handleBookmarkPress = () => {
+    const newBookmarkState = !isBookmarked;
+    setIsBookmarked(newBookmarkState);
+    onBookmarkPress?.(newBookmarkState);
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.svgBackground}>
+        <SvgXml
+          xml={isDarkMode ? darkSvg : lightSvg}
+          width="100%"
+          height="100%"
+        />
+      </View>
+
+      <View style={styles.buttonContainer}>
+        {/* Reset Button */}
+        <TouchableOpacity
+          key={`reset-${isDarkMode}`}
+          onPress={onResetPress}
+          activeOpacity={0.7}
+          style={[
+            styles.circleButton,
+            isDarkMode ? styles.circleButtonDark : styles.circleButtonLight,
+          ]}
+        >
+          <ResetIcon darkMode={isDarkMode} width={18} height={18} />
+        </TouchableOpacity>
+
+        {/* Main Power Button */}
+        <TouchableOpacity
+          onPress={onPowerPress}
+          activeOpacity={0.7}
+          style={styles.powerButtonWrapper}
+        >
+          <SvgXml
+            xml={isDarkMode ? powerButtonDarkSvg : powerButtonLightSvg}
+            width={76}
+            height={74}
+          />
+        </TouchableOpacity>
+
+        {/* Bookmark Button */}
+        <TouchableOpacity
+          key={`bookmark-${isDarkMode}`}
+          onPress={handleBookmarkPress}
+          activeOpacity={0.7}
+          style={[
+            styles.circleButton,
+            isDarkMode ? styles.circleButtonDark : styles.circleButtonLight,
+          ]}
+        >
+          <BookmarkIcon
+            darkMode={isDarkMode}
+            outline={!isBookmarked}
+            width={13}
+            height={18}
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    width: width,
+    height: 145,
+    alignSelf: "center",
+    // FIX: Pulls the navigation bar up to collapse the asset's transparent padding zone
+    marginBottom: -30, 
+  },
+  svgBackground: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    // FIX: Shifted down slightly to account for the layout pull-down adjustment
+    marginTop: 36, 
+    zIndex: 1,
+  },
+  powerButtonWrapper: {
+    width: 76,
+    height: 74,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  circleButton: {
+    width: CIRCLE_SIZE,
+    height: CIRCLE_SIZE,
+    borderRadius: CIRCLE_SIZE / 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  circleButtonLight: {
+    backgroundColor: "#E7E7E7",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  circleButtonDark: {
+    backgroundColor: "#141414",
+    borderWidth: 1,
+    borderColor: "rgba(217, 217, 217, 0.50)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+});
+
+export default ControlCenter;
+```
+
+## QuickActionCard.tsx
+```
 import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, Animated, Pressable } from "react-native";
 import PowerButtonIcon from "../icons/PowerButtonIcon";
@@ -1035,7 +995,161 @@ const styles = StyleSheet.create({
 });
 
 export default QuickActionCard;
+```
 
+## SystemMonitor.tsx
+```
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet } from "react-native";
+import ChamberTempIcon from "../icons/ChamberTempIcon";
+import HeaterTempIcon from "../icons/HeaterTempIcon";
+import RelativeHumidityIcon from "../icons/RelativeHumidityIcon";
+import FanSpeedMonitorIcon from "../icons/FanSpeedMonitorIcon";
+
+interface Props {
+  theme: any;
+}
+
+const SystemMonitor: React.FC<Props> = ({ theme }) => {
+  const isDarkMode = theme.background === "#060606";
+  const textColor = isDarkMode ? "#E7E7E7" : "#2E2E2E";
+
+  const [data, setData] = useState({ temp: 20, humidity: 0, fan: 0 });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setData({
+        temp: Math.floor(Math.random() * (70 - 20 + 1)) + 20,
+        humidity: Math.floor(Math.random() * 101),
+        fan: Math.floor(Math.random() * 101),
+      });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <View
+      key={isDarkMode ? "monitor-dark" : "monitor-light"}
+      style={[
+        styles.base,
+        { backgroundColor: isDarkMode ? "#141414" : "#E7E7E7" },
+        isDarkMode && styles.darkBorder,
+      ]}
+    >
+      <View style={styles.grid}>
+        
+        {/* TOP LEFT: CHAMBER TEMP */}
+        <View style={styles.cell}>
+          <View style={styles.headerRow}>
+            <Text style={[styles.headerText, { color: textColor }]}>Chamber Temp (°C)</Text>
+            <ChamberTempIcon fill={textColor} width={8} height={16} />
+          </View>
+          <Text style={[styles.mainValue, { color: textColor }]}>{data.temp}°</Text>
+        </View>
+
+        {/* TOP RIGHT: HEATER TEMP */}
+        <View style={styles.cell}>
+          <View style={styles.headerRow}>
+            <Text style={[styles.headerText, { color: textColor }]}>Heater Temp (°C)</Text>
+            <HeaterTempIcon fill={textColor} width={15} height={16} />
+          </View>
+          <Text style={[styles.mainValue, { color: textColor }]}>{data.temp}°</Text>
+        </View>
+
+        {/* BOTTOM LEFT: HUMIDITY */}
+        <View style={styles.cell}>
+          <View style={styles.headerRow}>
+            <Text style={[styles.headerText, { color: textColor }]}>Relative Humidity</Text>
+            <RelativeHumidityIcon fill={textColor} width={12} height={16} />
+          </View>
+          <Text style={[styles.mainValue, { color: textColor }]}>{data.humidity}%</Text>
+        </View>
+
+        {/* BOTTOM RIGHT: FAN SPEED */}
+        <View style={styles.cell}>
+          <View style={styles.headerRow}>
+            <Text style={[styles.headerText, { color: textColor }]}>Fan Speed</Text>
+            <FanSpeedMonitorIcon fill={textColor} width={18} height={15} />
+          </View>
+          
+          {/* THE FIX: These rows now combine to exactly 60px height to match the Humidity text */}
+          <View style={styles.fanRow}>
+            <Text style={[styles.fanLabel, { color: textColor }]}>Intake</Text>
+            <Text style={[styles.fanValue, { color: textColor }]}>{data.fan}%</Text>
+          </View>
+          
+          <View style={styles.fanRow}>
+            <Text style={[styles.fanLabel, { color: textColor }]}>Exhaust</Text>
+            <Text style={[styles.fanValue, { color: textColor }]}>{data.fan}%</Text>
+          </View>
+        </View>
+
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  base: {
+    width: "100%",
+    paddingInline: 20,
+    paddingBlock: 10,
+    borderRadius: 20,
+    elevation: 8,
+    shadowColor: "#000",
+  },
+  darkBorder: {
+    borderWidth: 1,
+    borderColor: "rgba(217, 217, 217, 0.50)",
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  cell: {
+    width: "48%",
+    marginBottom: 4,
+  },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    height: 18, // Lock header height for better alignment
+  },
+  headerText: {
+    fontFamily: "aera_bold",
+    fontSize: 11,
+  },
+  mainValue: {
+    fontFamily: "aera_small",
+    fontSize: 52,
+    lineHeight: 60,
+    letterSpacing: -1,
+  },
+  fanRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    height: 30, // 30 + 30 = 60 (Matches Humidity lineHeight)
+  },
+  fanLabel: {
+    fontFamily: "aera_medium",
+    fontSize: 16,
+    lineHeight: 30,
+  },
+  fanValue: {
+    fontFamily: "aera_tiny",
+    fontSize: 26,
+    lineHeight: 30,
+  },
+});
+
+export default SystemMonitor;
+```
+
+## TemparaturePickerCard.tsx
+```
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput } from "react-native";
 import Svg, { Path, Rect } from "react-native-svg";
@@ -1364,178 +1478,10 @@ const styles = StyleSheet.create({
 });
 
 export default TemperaturePickerCard;
+```
 
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
-import PausePlayButton from "./PausePlayButton";
-import CancelButton from "./CancelButton";
-import ProgressBar from "./ProgressBar";
-import ActiveDryingSunIcon from "../icons/ActiveDryingSunIcon";
-
-interface Props {
-	theme: any;
-	time: string;
-	isHrMin: boolean;
-	progress: number;
-	percentage: number;
-	onCancel: () => void;
-	isPaused: boolean;
-	onPauseToggle: () => void;
-}
-
-const TimerCard: React.FC<Props> = ({
-	theme,
-	time,
-	isHrMin,
-	progress,
-	percentage,
-	onCancel,
-	isPaused,
-	onPauseToggle,
-}) => {
-	const isDarkMode = theme.background === "#060606";
-	const textColor = isDarkMode ? "#E7E7E7" : "#2E2E2E";
-
-	return (
-		<View
-			key={isDarkMode ? "timer-dark" : "timer-light"}
-			style={[
-				styles.base,
-				{ backgroundColor: isDarkMode ? "#141414" : "#E7E7E7" },
-				isDarkMode && styles.darkBorder,
-			]}
-		>
-			{/* THE OVERLAY BOX (Top Section) */}
-			<View
-				style={[
-					styles.overlay,
-					{ backgroundColor: isDarkMode ? "#141414" : "#E7E7E7" },
-					isDarkMode && styles.darkBorder,
-				]}
-			>
-				{/* LEFT COLUMN: Title, Progress, Stats */}
-				<View style={styles.leftColumn}>
-					<Text
-						style={[styles.titleText, { color: textColor }]}
-						numberOfLines={1}
-					>
-						Now Drying
-					</Text>
-
-					<View style={styles.progressContainer}>
-						{/* FIXED: Passing percentage (0-100) instead of decimal progress to match ProgressBar's expected scale */}
-						<ProgressBar
-							theme={theme}
-							progress={percentage}
-							height={4}
-						/>
-					</View>
-
-					<View style={styles.statsRow}>
-						<View style={styles.sunIconWrapper}>
-							<ActiveDryingSunIcon
-								fill={textColor}
-								width={38}
-								height={25}
-							/>
-						</View>
-						<View style={styles.percentContainer}>
-							{/* Displays live numerical completion percentage */}
-							<Text
-								style={[
-									styles.percentText,
-									{ color: textColor },
-								]}
-							>
-								{percentage}%
-							</Text>
-							<Text
-								style={[styles.unitText, { color: textColor }]}
-							>
-								{isHrMin ? "hr : min" : "min : sec"}
-							</Text>
-						</View>
-					</View>
-				</View>
-
-				{/* RIGHT COLUMN: Giant Timer */}
-				<View style={styles.rightColumn}>
-					<Text style={[styles.timerText, { color: textColor }]}>
-						{time}
-					</Text>
-				</View>
-			</View>
-
-			{/* BOTTOM SECTION (Button Area) */}
-			<View style={styles.bottomArea}>
-				<PausePlayButton isPaused={isPaused} onPress={onPauseToggle} />
-				<CancelButton onPress={onCancel} />
-			</View>
-		</View>
-	);
-};
-
-const styles = StyleSheet.create({
-	base: {
-		width: "100%",
-		minHeight: 170,
-		borderRadius: 20,
-		backgroundColor: "#E7E7E7", // Fallback, will be overridden by your inline styles
-		elevation: 6, // Slightly reduced to soften the Android shadow
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 }, // Added proper iOS/Cross-platform rendering
-		shadowOpacity: 0.12,
-		shadowRadius: 12,
-	},
-	overlay: {
-		width: "100%",
-		minHeight: 110,
-		borderTopLeftRadius: 18,
-		borderTopRightRadius: 18,
-		borderBottomRightRadius: 20,
-		borderBottomLeftRadius: 20,
-		elevation: 3, // Lowered inner elevation so it layers nicely over the base
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.06,
-		shadowRadius: 8,
-		flexDirection: "row",
-		paddingHorizontal: 20,
-		paddingVertical: 12,
-		alignItems: "center",
-	},
-	darkBorder: { borderWidth: 1, borderColor: "rgba(217, 217, 217, 0.50)" },
-	leftColumn: { flex: 1, paddingRight: 15 },
-	titleText: { fontFamily: "aera_bold", fontSize: 21, marginBottom: 4 },
-	progressContainer: { marginBottom: 2 },
-	statsRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "flex-end",
-	},
-	percentContainer: { alignItems: "flex-end" },
-	percentText: { fontFamily: "aera_tallsmall", fontSize: 28, lineHeight: 22 },
-	sunIconWrapper: { transform: [{ translateY: -4 }] },
-	unitText: { fontFamily: "aera_medium", fontSize: 12, opacity: 0.8 },
-	rightColumn: { justifyContent: "center", alignItems: "flex-end" },
-	timerText: {
-		fontFamily: "aera_tallmedium",
-		fontSize: 100,
-		lineHeight: 75,
-		letterSpacing: -1,
-	},
-	bottomArea: {
-		flex: 1,
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		paddingHorizontal: 14,
-	},
-});
-
-export default TimerCard;
-
-
+## TimerPickerCard.tsx
+```
 import React, { useState, forwardRef, useImperativeHandle } from "react";
 import { View, Text, StyleSheet, Pressable, TextInput } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -1963,132 +1909,362 @@ const styles = StyleSheet.create({
 });
 
 export default TimerPickerCard;
+```
 
+## TimerCard.tsx
+```
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
+import PausePlayButton from "./PausePlayButton";
+import CancelButton from "./CancelButton";
+import ProgressBar from "./ProgressBar";
+import ActiveDryingSunIcon from "../icons/ActiveDryingSunIcon";
 
 interface Props {
 	theme: any;
-	progress: number; // Expects a value from 0 to 100
-	height?: number;
+	time: string;
+	isHrMin: boolean;
+	progress: number;
+	percentage: number;
+	onCancel: () => void;
+	isPaused: boolean;
+	onPauseToggle: () => void;
 }
 
-const ProgressBar: React.FC<Props> = ({ theme, progress, height = 4 }) => {
+const TimerCard: React.FC<Props> = ({
+	theme,
+	time,
+	isHrMin,
+	progress,
+	percentage,
+	onCancel,
+	isPaused,
+	onPauseToggle,
+}) => {
 	const isDarkMode = theme.background === "#060606";
-
-	// Ensure the progress value stays safely within 0 and 100
-	const clampedProgress = Math.max(0, Math.min(100, progress));
+	const textColor = isDarkMode ? "#E7E7E7" : "#2E2E2E";
 
 	return (
-		// ProgressBarBg
-		<View style={[styles.bg, { height }]}>
-			{/* ProgressBar (Active fill) */}
+		<View
+			key={isDarkMode ? "timer-dark" : "timer-light"}
+			style={[
+				styles.base,
+				{ backgroundColor: isDarkMode ? "#141414" : "#E7E7E7" },
+				isDarkMode && styles.darkBorder,
+			]}
+		>
+			{/* THE OVERLAY BOX (Top Section) */}
 			<View
 				style={[
-					styles.fill,
-					{
-						width: `${clampedProgress}%`,
-						backgroundColor: isDarkMode ? "#E7E7E7" : "#2E2E2E",
-					},
+					styles.overlay,
+					{ backgroundColor: isDarkMode ? "#141414" : "#E7E7E7" },
+					isDarkMode && styles.darkBorder,
 				]}
-			/>
+			>
+				{/* LEFT COLUMN: Title, Progress, Stats */}
+				<View style={styles.leftColumn}>
+					<Text
+						style={[styles.titleText, { color: textColor }]}
+						numberOfLines={1}
+					>
+						Now Drying
+					</Text>
+
+					<View style={styles.progressContainer}>
+						{/* FIXED: Passing percentage (0-100) instead of decimal progress to match ProgressBar's expected scale */}
+						<ProgressBar
+							theme={theme}
+							progress={percentage}
+							height={4}
+						/>
+					</View>
+
+					<View style={styles.statsRow}>
+						<View style={styles.sunIconWrapper}>
+							<ActiveDryingSunIcon
+								fill={textColor}
+								width={38}
+								height={25}
+							/>
+						</View>
+						<View style={styles.percentContainer}>
+							{/* Displays live numerical completion percentage */}
+							<Text
+								style={[
+									styles.percentText,
+									{ color: textColor },
+								]}
+							>
+								{percentage}%
+							</Text>
+							<Text
+								style={[styles.unitText, { color: textColor }]}
+							>
+								{isHrMin ? "hr : min" : "min : sec"}
+							</Text>
+						</View>
+					</View>
+				</View>
+
+				{/* RIGHT COLUMN: Giant Timer */}
+				<View style={styles.rightColumn}>
+					<Text style={[styles.timerText, { color: textColor }]}>
+						{time}
+					</Text>
+				</View>
+			</View>
+
+			{/* BOTTOM SECTION (Button Area) */}
+			<View style={styles.bottomArea}>
+				<PausePlayButton isPaused={isPaused} onPress={onPauseToggle} />
+				<CancelButton onPress={onCancel} />
+			</View>
 		</View>
 	);
 };
 
 const styles = StyleSheet.create({
-	bg: {
+	base: {
 		width: "100%",
-		backgroundColor: "rgba(161, 161, 161, 0.75)",
+		minHeight: 170,
 		borderRadius: 20,
-		// Prevents the inner square corners from breaking out of the rounded background
-		overflow: "hidden",
+		backgroundColor: "#E7E7E7", // Fallback, will be overridden by your inline styles
+		elevation: 6, // Slightly reduced to soften the Android shadow
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 4 }, // Added proper iOS/Cross-platform rendering
+		shadowOpacity: 0.12,
+		shadowRadius: 12,
 	},
-	fill: {
-		height: "100%",
-		borderRadius: 20,
+	overlay: {
+		width: "100%",
+		minHeight: 110,
+		borderTopLeftRadius: 18,
+		borderTopRightRadius: 18,
+		borderBottomRightRadius: 20,
+		borderBottomLeftRadius: 20,
+		elevation: 3, // Lowered inner elevation so it layers nicely over the base
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 4 },
+		shadowOpacity: 0.06,
+		shadowRadius: 8,
+		flexDirection: "row",
+		paddingHorizontal: 20,
+		paddingVertical: 12,
+		alignItems: "center",
+	},
+	darkBorder: { borderWidth: 1, borderColor: "rgba(217, 217, 217, 0.50)" },
+	leftColumn: { flex: 1, paddingRight: 15 },
+	titleText: { fontFamily: "aera_bold", fontSize: 21, marginBottom: 4 },
+	progressContainer: { marginBottom: 2 },
+	statsRow: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "flex-end",
+	},
+	percentContainer: { alignItems: "flex-end" },
+	percentText: { fontFamily: "aera_tallsmall", fontSize: 28, lineHeight: 22 },
+	sunIconWrapper: { transform: [{ translateY: -4 }] },
+	unitText: { fontFamily: "aera_medium", fontSize: 12, opacity: 0.8 },
+	rightColumn: { justifyContent: "center", alignItems: "flex-end" },
+	timerText: {
+		fontFamily: "aera_tallmedium",
+		fontSize: 100,
+		lineHeight: 75,
+		letterSpacing: -1,
+	},
+	bottomArea: {
+		flex: 1,
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		paddingHorizontal: 14,
 	},
 });
 
-export default ProgressBar;
+export default TimerCard;
+```
 
-import React from "react"; // Removed useState since state is now handled globally
+## CancelButton.tsx
+```
+import React from "react";
 import { Pressable, Text, StyleSheet, View } from "react-native";
-import PauseIcon from "../icons/PauseIcon";
-import PlayIcon from "../icons/PlayIcon";
+import CancelIcon from "../icons/CancelIcon";
 
 interface Props {
-  disabled?: boolean;
-  isPaused: boolean;     // Added: Drives the button's layout structure
-  onPress: () => void;   // Added: Fires when the button is tapped
+	disabled?: boolean;
+	onPress?: () => void;
 }
 
-const PausePlayButton: React.FC<Props> = ({ 
-  disabled = false, 
-  isPaused, 
-  onPress 
-}) => {
-  // Switch content color based on the disabled state
-  const contentColor = disabled ? "rgba(54, 54, 54, 0.5)" : "#2E2E2E";
+const CancelButton: React.FC<Props> = ({ disabled = false, onPress }) => {
+	// White when active, matches the disabled SVG color when inactive
+	const contentColor = disabled ? "rgba(54, 54, 54, 0.5)" : "#FFFFFF";
 
-  return (
-    <Pressable
-      onPress={onPress} // Directly triggers the pause engine handler passed from MainScreen
-      disabled={disabled}
-      style={({ pressed }) => [
-        styles.button,
-        pressed && !disabled && styles.buttonPressed,
-        disabled && styles.buttonDisabled,
-      ]}
-    >
-      <View style={styles.iconContainer}>
-        {/* If the timer is paused, display the Play icon to let them resume */}
-        {isPaused ? (
-          <PlayIcon fill={contentColor} width={14} height={16} />
-        ) : (
-          <PauseIcon fill={contentColor} width={12} height={16} />
-        )}
-      </View>
-      
-      <Text style={[styles.label, { color: contentColor }]}>
-        {isPaused ? "Continue Drying" : "Pause Drying"}
-      </Text>
-    </Pressable>
-  );
+	return (
+		<Pressable
+			onPress={onPress}
+			disabled={disabled}
+			style={({ pressed }) => [
+				styles.button,
+				pressed && !disabled && styles.buttonPressed,
+				disabled && styles.buttonDisabled,
+			]}
+		>
+			{/* TEXT IS NOW ON THE LEFT */}
+			<Text style={[styles.label, { color: contentColor }]}>
+				Stop Drying
+			</Text>
+
+			{/* ICON IS NOW ON THE RIGHT */}
+			<View style={styles.iconContainer}>
+				<CancelIcon fill={contentColor} width={15} height={15} />
+			</View>
+		</Pressable>
+	);
 };
 
 const styles = StyleSheet.create({
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F6B91E",
-    paddingVertical: 4,
-    paddingHorizontal: 14,
-    borderRadius: 100,
-    elevation: 6,
-    shadowColor: "#000",
-  },
-  buttonPressed: {
-    opacity: 0.8,
-    elevation: 2, 
-  },
-  buttonDisabled: {
-    elevation: 1,
-  },
-  iconContainer: {
-    width: 16, 
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 4,
-  },
-  label: {
-    fontFamily: "aera_medium",
-    fontSize: 12,
-  },
+	button: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: "#D52222",
+		paddingVertical: 4,
+		paddingHorizontal: 14,
+		borderRadius: 100, // Pill shape
+		elevation: 6,
+		shadowColor: "#000",
+	},
+	buttonPressed: {
+		opacity: 0.8,
+		elevation: 2,
+	},
+	buttonDisabled: {
+		elevation: 1,
+	},
+	iconContainer: {
+		width: 16,
+		alignItems: "center",
+		justifyContent: "center",
+		marginLeft: 6, // Margin is now on the left to separate from the text
+	},
+	label: {
+		fontFamily: "aera_medium",
+		fontSize: 12,
+	},
 });
 
-export default PausePlayButton;
+export default CancelButton;
+```
 
+## AeraStatusBar.tsx
+```
+import React from "react";
+import { View, StyleSheet, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// Import the icon library components we built
+import AeraLogo from "../icons/AeraLogo";
+import WaterLevelIcon from "../icons/WaterLevelIcon";
+import DoorIcon from "../icons/DoorIcon";
+import UVIcon from "../icons/UVIcon";
+import WifiIcon from "../icons/WifiIcon";
+
+interface StatusBarProps {
+	theme: any;
+	status: {
+		water: 0 | 25 | 50 | 75 | 100 | null;
+		door: "locked" | "unlocked" | "inactive";
+		uvActive: boolean;
+		wifiLevel: 1 | 2 | 3 | 4;
+	};
+}
+
+const AeraStatusBar: React.FC<StatusBarProps> = ({ theme, status }) => {
+	const insets = useSafeAreaInsets();
+	const isDarkMode = theme.background === "#060606";
+
+	// Background and Border logic from Figma
+	const barBg = isDarkMode ? "#141414" : "#E7E7E7";
+
+	return (
+		<View
+			style={[
+				styles.outerContainer,
+				{
+					backgroundColor: barBg,
+					paddingTop: insets.top, // Handles Notch/Dynamic Island
+				},
+				isDarkMode ? styles.darkBorder : styles.lightShadow,
+			]}
+		>
+			<View style={styles.innerContent}>
+				{/* LEFT: Brand Identity */}
+				<AeraLogo theme={theme} />
+
+				{/* RIGHT: Telemetry Group (gap: 13 from Figma) */}
+				<View style={styles.statusGroup}>
+					<WaterLevelIcon theme={theme} percentage={status.water} />
+
+					<View style={styles.iconSeparator}>
+						<DoorIcon theme={theme} status={status.door} />
+					</View>
+
+					<View style={styles.iconSeparator}>
+						<UVIcon theme={theme} isActive={status.uvActive} />
+					</View>
+
+					<View style={styles.iconSeparator}>
+						<WifiIcon theme={theme} level={status.wifiLevel} />
+					</View>
+				</View>
+			</View>
+		</View>
+	);
+};
+
+const styles = StyleSheet.create({
+	outerContainer: {
+		width: "100%",
+		zIndex: 10,
+	},
+	innerContent: {
+		height: 56, // Matches the 55.52 height in Figma
+		flexDirection: "row",
+		justifyContent: "space-between",
+		alignItems: "center",
+		paddingHorizontal: 17, // Matches 'left: 17' in Figma
+	},
+	statusGroup: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "flex-end",
+	},
+	iconSeparator: {
+		marginLeft: 13, // Matches 'gap: 13' in Figma status group
+	},
+	lightShadow: {
+		...Platform.select({
+			ios: {
+				shadowColor: "#000",
+				shadowOffset: { width: 0, height: 2 },
+				shadowOpacity: 0.3,
+				shadowRadius: 3,
+			},
+			android: {
+				elevation: 10,
+			},
+		}),
+	},
+	darkBorder: {
+		borderBottomWidth: 1,
+		borderBottomColor: "rgba(217, 217, 217, 0.50)", // Matches Figma Darkmode border
+	},
+});
+
+export default AeraStatusBar;
+```
+
+## NavigationBar.tsx
+```
 import React from "react";
 import { View, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import Svg, { Path } from "react-native-svg";
@@ -2228,196 +2404,135 @@ const styles = StyleSheet.create({
 });
 
 export default NavigationBar;
+```
 
-
-import React, { useState } from "react";
-import { View, StyleSheet, Dimensions, TouchableOpacity } from "react-native";
-import { SvgXml } from "react-native-svg";
-
-import ResetIcon from "../icons/ResetIcon";
-import BookmarkIcon from "../icons/BookmarkIcon";
-
-const { width } = Dimensions.get("window");
-
-const CIRCLE_SIZE = 38;
+## PausePlayButton.tsx
+```
+import React from "react"; // Removed useState since state is now handled globally
+import { Pressable, Text, StyleSheet, View } from "react-native";
+import PauseIcon from "../icons/PauseIcon";
+import PlayIcon from "../icons/PlayIcon";
 
 interface Props {
-  theme: any;
-  onPowerPress?: () => void;
-  onResetPress?: () => void;
-  onBookmarkPress?: (isBookmarked: boolean) => void;
+  disabled?: boolean;
+  isPaused: boolean;     // Added: Drives the button's layout structure
+  onPress: () => void;   // Added: Fires when the button is tapped
 }
 
-// Control Center background svg
-const lightSvg = `<svg width="412" height="153" viewBox="0 0 412 153" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#a)"><path d="M0 73.2c0-24.853 20.147-45 45-45h322c24.853 0 45 20.147 45 45v51.548H0z" fill="#e7e7e7"/></g><defs><filter id="a" x="-28.2" y="0" width="468.4" height="152.948" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="14.1"/><feComposite in2="hardAlpha" operator="out"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"/><feBlend in2="BackgroundImageFix" result="effect1_dropShadow_1997_3299"/><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feMorphology radius="1" operator="dilate" in="SourceAlpha" result="effect2_dropShadow_1997_3299"/><feOffset/><feGaussianBlur stdDeviation="2"/><feComposite in2="hardAlpha" operator="out"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"/><feBlend in2="effect1_dropShadow_1997_3299" result="effect2_dropShadow_1997_3299"/><feBlend in="SourceGraphic" in2="effect2_dropShadow_1997_3299" result="shape"/></filter></defs></svg>`;
-
-const darkSvg = `<svg width="412" height="154" viewBox="0 0 412 154" fill="none" xmlns="http://www.w3.org/2000/svg"><g filter="url(#a)"><mask id="b" maskUnits="userSpaceOnUse" x="0" y="28.2" width="412" height="98" fill="#000"><path fill="#fff" d="M0 28.2h412v98H0z"/><path d="M0 74.2c0-24.853 20.147-45 45-45h322c24.853 0 45 20.147 45 45v51.548H0z"/></mask><path d="M0 74.2c0-24.853 20.147-45 45-45h322c24.853 0 45 20.147 45 45v51.548H0z" fill="#141414" shape-rendering="crispEdges"/><path d="M0 74.2c0-25.405 20.595-46 46-46h320c25.405 0 46 20.595 46 46 0-24.3-20.147-44-45-44H45c-24.853 0-45 19.7-45 44m412 51.548H0zm-412 0V29.2zM412 29.2v96.548z" fill="#d9d9d9" fill-opacity=".5" mask="url(#b)"/></g><defs><filter id="a" x="-28.2" y="0" width="468.4" height="153.948" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feOffset/><feGaussianBlur stdDeviation="14.1"/><feComposite in2="hardAlpha" operator="out"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.3 0"/><feBlend in2="BackgroundImageFix" result="effect1_dropShadow_1997_1155"/><feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/><feMorphology radius="1" operator="dilate" in="SourceAlpha" result="effect2_dropShadow_1997_1155"/><feOffset/><feGaussianBlur stdDeviation="2"/><feComposite in2="hardAlpha" operator="out"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.15 0"/><feBlend in2="effect1_dropShadow_1997_1155" result="effect2_dropShadow_1997_1155"/><feBlend in="SourceGraphic" in2="effect2_dropShadow_1997_1155" result="shape"/></filter></defs></svg>`;
-
-// Power button SVG with shadow - Light mode
-const powerButtonLightSvg = `<svg width="76" height="74" viewBox="0 0 76 74" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <g filter="url(#buttonShadowLight)">
-    <rect x="8" y="7" width="60" height="60" rx="20" fill="#D52222"/>
-    <g transform="translate(22, 21)">
-      <path d="M15.869 31.738C7.119 31.738 0 24.607 0 15.842c0-4.764 2.079-9.23 5.704-12.248a1.678 1.678 0 1 1 2.149 2.578c-2.857 2.38-4.496 5.905-4.496 9.67 0 6.914 5.613 12.539 12.512 12.539S28.38 22.756 28.38 15.842a12.51 12.51 0 0 0-4.564-9.662 1.679 1.679 0 1 1 2.136-2.588 15.86 15.86 0 0 1 5.785 12.25c0 8.765-7.119 15.896-15.868 15.896" fill="#fff"/>
-      <path d="M15.868 17.09a1.68 1.68 0 0 1-1.678-1.68V1.679a1.679 1.679 0 0 1 3.357 0v13.733a1.68 1.68 0 0 1-1.679 1.678" fill="#fff"/>
-    </g>
-  </g>
-  <defs>
-    <filter id="buttonShadowLight" x="-4" y="-1" width="84" height="82" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.15"/>
-      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.30"/>
-    </filter>
-  </defs>
-</svg>`;
-
-// Power button SVG with shadow - Dark mode
-const powerButtonDarkSvg = `<svg width="76" height="74" viewBox="0 0 76 74" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <g filter="url(#buttonShadowDark)">
-    <rect x="8" y="7" width="60" height="60" rx="20" fill="#141414" stroke="rgba(217, 217, 217, 0.50)" stroke-width="1"/>
-    <g transform="translate(22, 21)">
-      <path d="M15.869 31.738C7.119 31.738 0 24.607 0 15.842c0-4.764 2.079-9.23 5.704-12.248a1.678 1.678 0 1 1 2.149 2.578c-2.857 2.38-4.496 5.905-4.496 9.67 0 6.914 5.613 12.539 12.512 12.539S28.38 22.756 28.38 15.842a12.51 12.51 0 0 0-4.564-9.662 1.679 1.679 0 1 1 2.136-2.588 15.86 15.86 0 0 1 5.785 12.25c0 8.765-7.119 15.896-15.868 15.896" fill="#d52222"/>
-      <path d="M15.868 17.09a1.68 1.68 0 0 1-1.678-1.68V1.679a1.679 1.679 0 0 1 3.357 0v13.733a1.68 1.68 0 0 1-1.679 1.678" fill="#d52222"/>
-    </g>
-  </g>
-  <defs>
-    <filter id="buttonShadowDark" x="-4" y="-1" width="84" height="82" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity="0.15"/>
-      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-opacity="0.30"/>
-    </filter>
-  </defs>
-</svg>`;
-
-const ControlCenter: React.FC<Props> = ({
-  theme,
-  onPowerPress,
-  onResetPress,
-  onBookmarkPress,
+const PausePlayButton: React.FC<Props> = ({ 
+  disabled = false, 
+  isPaused, 
+  onPress 
 }) => {
-  const isDarkMode = theme?.background === "#060606";
-  const [isBookmarked, setIsBookmarked] = useState(false);
-
-  const handleBookmarkPress = () => {
-    const newBookmarkState = !isBookmarked;
-    setIsBookmarked(newBookmarkState);
-    onBookmarkPress?.(newBookmarkState);
-  };
+  // Switch content color based on the disabled state
+  const contentColor = disabled ? "rgba(54, 54, 54, 0.5)" : "#2E2E2E";
 
   return (
-    <View style={styles.container}>
-      <View style={styles.svgBackground}>
-        <SvgXml
-          xml={isDarkMode ? darkSvg : lightSvg}
-          width="100%"
-          height="100%"
-        />
+    <Pressable
+      onPress={onPress} // Directly triggers the pause engine handler passed from MainScreen
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.button,
+        pressed && !disabled && styles.buttonPressed,
+        disabled && styles.buttonDisabled,
+      ]}
+    >
+      <View style={styles.iconContainer}>
+        {/* If the timer is paused, display the Play icon to let them resume */}
+        {isPaused ? (
+          <PlayIcon fill={contentColor} width={14} height={16} />
+        ) : (
+          <PauseIcon fill={contentColor} width={12} height={16} />
+        )}
       </View>
-
-      <View style={styles.buttonContainer}>
-        {/* Reset Button */}
-        <TouchableOpacity
-          key={`reset-${isDarkMode}`}
-          onPress={onResetPress}
-          activeOpacity={0.7}
-          style={[
-            styles.circleButton,
-            isDarkMode ? styles.circleButtonDark : styles.circleButtonLight,
-          ]}
-        >
-          <ResetIcon darkMode={isDarkMode} width={18} height={18} />
-        </TouchableOpacity>
-
-        {/* Main Power Button */}
-        <TouchableOpacity
-          onPress={onPowerPress}
-          activeOpacity={0.7}
-          style={styles.powerButtonWrapper}
-        >
-          <SvgXml
-            xml={isDarkMode ? powerButtonDarkSvg : powerButtonLightSvg}
-            width={76}
-            height={74}
-          />
-        </TouchableOpacity>
-
-        {/* Bookmark Button */}
-        <TouchableOpacity
-          key={`bookmark-${isDarkMode}`}
-          onPress={handleBookmarkPress}
-          activeOpacity={0.7}
-          style={[
-            styles.circleButton,
-            isDarkMode ? styles.circleButtonDark : styles.circleButtonLight,
-          ]}
-        >
-          <BookmarkIcon
-            darkMode={isDarkMode}
-            outline={!isBookmarked}
-            width={13}
-            height={18}
-          />
-        </TouchableOpacity>
-      </View>
-    </View>
+      
+      <Text style={[styles.label, { color: contentColor }]}>
+        {isPaused ? "Continue Drying" : "Pause Drying"}
+      </Text>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    width: width,
-    height: 145,
-    alignSelf: "center",
-    // FIX: Pulls the navigation bar up to collapse the asset's transparent padding zone
-    marginBottom: -30, 
-  },
-  svgBackground: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonContainer: {
+  button: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    // FIX: Shifted down slightly to account for the layout pull-down adjustment
-    marginTop: 36, 
-    zIndex: 1,
+    backgroundColor: "#F6B91E",
+    paddingVertical: 4,
+    paddingHorizontal: 14,
+    borderRadius: 100,
+    elevation: 6,
+    shadowColor: "#000",
   },
-  powerButtonWrapper: {
-    width: 76,
-    height: 74,
+  buttonPressed: {
+    opacity: 0.8,
+    elevation: 2, 
+  },
+  buttonDisabled: {
+    elevation: 1,
+  },
+  iconContainer: {
+    width: 16, 
     alignItems: "center",
     justifyContent: "center",
+    marginRight: 4,
   },
-  circleButton: {
-    width: CIRCLE_SIZE,
-    height: CIRCLE_SIZE,
-    borderRadius: CIRCLE_SIZE / 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  circleButtonLight: {
-    backgroundColor: "#E7E7E7",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  circleButtonDark: {
-    backgroundColor: "#141414",
-    borderWidth: 1,
-    borderColor: "rgba(217, 217, 217, 0.50)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-    elevation: 3,
+  label: {
+    fontFamily: "aera_medium",
+    fontSize: 12,
   },
 });
 
-export default ControlCenter;
+export default PausePlayButton;
+```
+
+## ProgressBar.tsx
+```
+import React from "react";
+import { View, StyleSheet } from "react-native";
+
+interface Props {
+	theme: any;
+	progress: number; // Expects a value from 0 to 100
+	height?: number;
+}
+
+const ProgressBar: React.FC<Props> = ({ theme, progress, height = 4 }) => {
+	const isDarkMode = theme.background === "#060606";
+
+	// Ensure the progress value stays safely within 0 and 100
+	const clampedProgress = Math.max(0, Math.min(100, progress));
+
+	return (
+		// ProgressBarBg
+		<View style={[styles.bg, { height }]}>
+			{/* ProgressBar (Active fill) */}
+			<View
+				style={[
+					styles.fill,
+					{
+						width: `${clampedProgress}%`,
+						backgroundColor: isDarkMode ? "#E7E7E7" : "#2E2E2E",
+					},
+				]}
+			/>
+		</View>
+	);
+};
+
+const styles = StyleSheet.create({
+	bg: {
+		width: "100%",
+		backgroundColor: "rgba(161, 161, 161, 0.75)",
+		borderRadius: 20,
+		// Prevents the inner square corners from breaking out of the rounded background
+		overflow: "hidden",
+	},
+	fill: {
+		height: "100%",
+		borderRadius: 20,
+	},
+});
+
+export default ProgressBar;
+```
